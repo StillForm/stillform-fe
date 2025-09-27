@@ -40,18 +40,30 @@ export function AssetDetailView({
       <Container className="grid gap-16 py-16 lg:grid-cols-[1.1fr_0.9fr]">
         <div className="space-y-6">
           <div className="relative overflow-hidden rounded-[20px] border border-[rgba(207,175,109,0.25)]">
-            <Image src={asset.image} alt={asset.title} width={960} height={1200} className="h-full w-full object-cover" />
+            <Image
+              src={asset.image}
+              alt={asset.title}
+              width={960}
+              height={1200}
+              className="h-full w-full object-cover"
+            />
           </div>
           <Card className="space-y-2 text-sm text-text-secondary">
             <p className="font-semibold text-text-primary">Redemption status</p>
-            <p>{redeemable ? "Eligible for physical redemption" : "Already redeemed"}</p>
+            <p>
+              {redeemable
+                ? "Eligible for physical redemption"
+                : "Already redeemed"}
+            </p>
           </Card>
         </div>
 
         <div className="space-y-6">
           <div className="space-y-3">
             <Badge variant="gold">{asset.chain}</Badge>
-            <h1 className="font-display text-4xl text-text-primary">{asset.title}</h1>
+            <h1 className="font-display text-4xl text-text-primary">
+              {asset.title}
+            </h1>
             <p className="text-lg text-text-secondary">{asset.artist.name}</p>
             <p className="text-sm text-text-secondary">{asset.edition}</p>
           </div>
@@ -59,8 +71,12 @@ export function AssetDetailView({
           <div className="space-y-4">
             <div className="flex items-center justify-between rounded-[14px] border border-[rgba(38,39,43,0.75)] bg-[rgba(12,12,14,0.78)] p-5">
               <div>
-                <p className="text-xs uppercase tracking-[0.25em] text-text-secondary/70">Owner</p>
-                <p className="text-text-primary">{truncateAddress(ownerAddress, 6)}</p>
+                <p className="text-xs uppercase tracking-[0.25em] text-text-secondary/70">
+                  Owner
+                </p>
+                <p className="text-text-primary">
+                  {truncateAddress(ownerAddress, 6)}
+                </p>
               </div>
               <Button
                 variant="tertiary"
@@ -77,18 +93,37 @@ export function AssetDetailView({
 
           <div className="flex flex-wrap gap-3">
             {viewerOwns && redeemable ? (
-              <Button onClick={() => openModal("redemption", { assetId: asset.id })}>
+              <Button
+                onClick={() => openModal("redemption", { assetId: asset.id })}
+              >
                 Request Redemption
               </Button>
             ) : asset.saleType === "blind" ? (
-              <Button onClick={() => openModal("blindBox", { assetId: asset.id })}>Open Blind Box</Button>
+              <Button
+                onClick={() => openModal("blindBox", { assetId: asset.id })}
+              >
+                Open Blind Box
+              </Button>
             ) : asset.saleType === "auction" ? (
-              <Button onClick={() => openModal("auction", { assetId: asset.id })}>Join Auction</Button>
+              <Button
+                onClick={() => openModal("auction", { assetId: asset.id })}
+              >
+                Join Auction
+              </Button>
             ) : (
-              <Button onClick={() => openModal("walletPrompt", { assetId: asset.id })}>Buy Now</Button>
+              <Button
+                onClick={() => openModal("walletPrompt", { assetId: asset.id })}
+              >
+                Buy Now
+              </Button>
             )}
 
-            <Button variant="secondary" onClick={() => openModal("aiPreset", { source: "asset", assetId: asset.id })}>
+            <Button
+              variant="secondary"
+              onClick={() =>
+                openModal("aiPreset", { source: "asset", assetId: asset.id })
+              }
+            >
               AI Recreate
             </Button>
           </div>
@@ -102,10 +137,13 @@ export function AssetDetailView({
 
         {activeTab === "about" ? (
           <Card className="space-y-4">
-            <h2 className="font-display text-2xl text-text-primary">About this asset</h2>
+            <h2 className="font-display text-2xl text-text-primary">
+              About this asset
+            </h2>
             <p className="text-text-secondary">
-              The digital edition is backed by a physical sculpture stored within the Stillform Vault.
-              Redeem to schedule shipment with provenance tracking.
+              The digital edition is backed by a physical sculpture stored
+              within the Stillform Vault. Redeem to schedule shipment with
+              provenance tracking.
             </p>
           </Card>
         ) : null}

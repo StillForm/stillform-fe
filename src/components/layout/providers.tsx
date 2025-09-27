@@ -3,7 +3,10 @@
 import { ReactNode, useMemo, useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { WagmiProvider } from "wagmi";
-import { ConnectionProvider, WalletProvider as SolanaWalletProvider } from "@solana/wallet-adapter-react";
+import {
+  ConnectionProvider,
+  WalletProvider as SolanaWalletProvider,
+} from "@solana/wallet-adapter-react";
 import { clusterApiUrl } from "@solana/web3.js";
 import {
   PhantomWalletAdapter,
@@ -66,7 +69,7 @@ function SolanaProviders({ children }: { children: ReactNode }) {
       new SolflareWalletAdapter(),
       new BitgetWalletAdapter(),
     ],
-    [],
+    []
   );
 
   const wallets = useStandardWalletAdapters(baseAdapters);
