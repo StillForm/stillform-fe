@@ -16,6 +16,14 @@ const nextConfig: NextConfig = {
         hostname: 'equal-brown-cougar.myfilebase.com',
         pathname: '/ipfs/**',
       },
+      {
+        protocol: "https",
+        hostname: "picsum.photos",
+      },
+      {
+        protocol: "https",
+        hostname: "api.dicebear.com",
+      },
     ],
   },
 };

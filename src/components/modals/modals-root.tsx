@@ -1,17 +1,35 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useEffect } from "react";
 import Image from "next/image";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { parseEther } from "viem";
 import { BaseModal } from "@/components/modals/base-modal";
 import { Button } from "@/components/ui/button";
 import { useModalStore } from "@/lib/stores/modal-store";
-import { assetDetails, blindBoxReveals, creatorDrafts, aiPresets } from "@/data/mock-data";
+import {
+  assetDetails,
+  blindBoxReveals,
+  creatorDrafts,
+  aiPresets,
+} from "@/data/mock-data";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import type { Asset } from "@/lib/types";
 import { logEvent } from "@/lib/analytics";
+import {
+  useCreateCollection,
+  ProductType,
+  REGISTRY_ADDRESS,
+  createNormalStyle,
+  useTransactionLogs,
+} from "@/lib/contracts";
+import { useAccount } from "wagmi";
+import { CreateCollectionForm, createCollectionSchema } from "./utils";
+import { toast } from "sonner";
 
 function AuctionModal({ asset }: { asset: Asset }) {
   const { closeModal } = useModalStore();
@@ -40,7 +58,12 @@ function AuctionModal({ asset }: { asset: Asset }) {
       <div className="grid gap-6 md:grid-cols-[1.1fr_0.9fr]">
         <div className="space-y-4">
           <div className="relative aspect-square overflow-hidden rounded-[16px]">
-            <Image src={asset.image} alt={asset.title} fill className="object-cover" />
+            <Image
+              src={asset.image}
+              alt={asset.title}
+              fill
+              className="object-cover"
+            />
           </div>
           <div className="flex items-center justify-between text-sm text-text-secondary">
             <span>Edition</span>
@@ -60,11 +83,15 @@ function AuctionModal({ asset }: { asset: Asset }) {
             <Label htmlFor="bid-note" optional>
               Notes
             </Label>
-            <Textarea id="bid-note" placeholder="Add a note for the artist" rows={4} />
+            <Textarea
+              id="bid-note"
+              placeholder="Add a note for the artist"
+              rows={4}
+            />
           </div>
           <div className="rounded-[14px] border border-[rgba(38,39,43,0.75)] bg-[rgba(12,12,14,0.78)] p-4 text-sm text-text-secondary">
-            Ensure your wallet is connected and funded. If you win, redemption details unlock within
-            Activity.
+            Ensure your wallet is connected and funded. If you win, redemption
+            details unlock within Activity.
           </div>
         </div>
       </div>
@@ -103,7 +130,12 @@ function BlindBoxModal({ asset }: { asset: Asset }) {
       <div className="grid gap-8 md:grid-cols-[1.1fr_1fr]">
         <div className="space-y-4">
           <div className="relative aspect-square overflow-hidden rounded-[18px]">
-            <Image src={asset.image} alt={asset.title} fill className="object-cover" />
+            <Image
+              src={asset.image}
+              alt={asset.title}
+              fill
+              className="object-cover"
+            />
           </div>
           <div className="rounded-[14px] border border-[rgba(38,39,43,0.75)] bg-[rgba(12,12,14,0.78)] p-4 text-sm text-text-secondary">
             <div className="flex items-center justify-between">
@@ -119,9 +151,12 @@ function BlindBoxModal({ asset }: { asset: Asset }) {
 
         <div className="space-y-5">
           <div>
-            <h3 className="font-display text-xl text-text-primary">My Reveals</h3>
+            <h3 className="font-display text-xl text-text-primary">
+              My Reveals
+            </h3>
             <p className="mt-1 text-sm text-text-secondary">
-              Capsule reveals sync across devices. Rare tiers trigger redemption prompts.
+              Capsule reveals sync across devices. Rare tiers trigger redemption
+              prompts.
             </p>
           </div>
           <div className="grid grid-cols-3 gap-3">
@@ -134,13 +169,23 @@ function BlindBoxModal({ asset }: { asset: Asset }) {
                 >
                   {reveal ? (
                     <>
-                      <Image src={reveal.image} alt={reveal.rarity} fill className="object-cover" />
-                      <Badge className="absolute bottom-2 left-1/2 -translate-x-1/2" variant="gold">
+                      <Image
+                        src={reveal.image}
+                        alt={reveal.rarity}
+                        fill
+                        className="object-cover"
+                      />
+                      <Badge
+                        className="absolute bottom-2 left-1/2 -translate-x-1/2"
+                        variant="gold"
+                      >
                         {reveal.rarity}
                       </Badge>
                     </>
                   ) : (
-                    <span className="text-sm text-text-secondary/70">Locked</span>
+                    <span className="text-sm text-text-secondary/70">
+                      Locked
+                    </span>
                   )}
                 </div>
               );
@@ -153,7 +198,10 @@ function BlindBoxModal({ asset }: { asset: Asset }) {
             </p>
             <ul className="mt-3 space-y-2 text-sm">
               {blindBoxReveals.map((reveal) => (
-                <li key={reveal.id} className="flex items-center justify-between">
+                <li
+                  key={reveal.id}
+                  className="flex items-center justify-between"
+                >
                   <span className="text-text-secondary">Collector minted</span>
                   <span className="text-gold">{reveal.rarity}</span>
                 </li>
@@ -186,7 +234,11 @@ function WalletPromptModal({ asset }: { asset: Asset }) {
           </Button>
           <Button
             onClick={() => {
-              logEvent("product_action", { type: "buy", id: asset.id, result: "prompt_connect" });
+              logEvent("product_action", {
+                type: "buy",
+                id: asset.id,
+                result: "prompt_connect",
+              });
               closeModal();
             }}
           >
@@ -196,8 +248,8 @@ function WalletPromptModal({ asset }: { asset: Asset }) {
       }
     >
       <p className="text-sm text-text-secondary">
-        Choose a wallet from the panel to continue this action. You can link multiple addresses across
-        EVM, Solana, and Sui.
+        Choose a wallet from the panel to continue this action. You can link
+        multiple addresses across EVM, Solana, and Sui.
       </p>
     </BaseModal>
   );
@@ -218,7 +270,10 @@ function RedemptionModal({ asset }: { asset: Asset }) {
           </Button>
           <Button
             onClick={() => {
-              logEvent("asset_request_redemption", { asset_id: asset.id, result: "submitted" });
+              logEvent("asset_request_redemption", {
+                asset_id: asset.id,
+                result: "submitted",
+              });
               closeModal();
             }}
           >
@@ -236,7 +291,12 @@ function RedemptionModal({ asset }: { asset: Asset }) {
           </div>
           <div>
             <Label htmlFor="email">Email*</Label>
-            <Input id="email" type="email" placeholder="creator@stillform.xyz" required />
+            <Input
+              id="email"
+              type="email"
+              placeholder="creator@stillform.xyz"
+              required
+            />
           </div>
           <div>
             <Label htmlFor="phone">Phone*</Label>
@@ -272,7 +332,11 @@ function RedemptionModal({ asset }: { asset: Asset }) {
             <Label htmlFor="notes" optional>
               Notes for delivery
             </Label>
-            <Textarea id="notes" rows={5} placeholder="Delivery instructions, availability window" />
+            <Textarea
+              id="notes"
+              rows={5}
+              placeholder="Delivery instructions, availability window"
+            />
           </div>
           <div className="rounded-[14px] border border-[rgba(38,39,43,0.75)] bg-[rgba(12,12,14,0.78)] p-4 text-sm text-text-secondary">
             <p className="font-semibold text-text-primary">Summary</p>
@@ -297,8 +361,72 @@ function RedemptionModal({ asset }: { asset: Asset }) {
   );
 }
 
+/** 创建新的作品 */
 function CreatorNewModal() {
   const { closeModal } = useModalStore();
+  const { address } = useAccount();
+  const {
+    createCollection,
+    hash,
+    isPending,
+    isConfirming,
+    isConfirmed,
+    error,
+  } = useCreateCollection();
+
+  const { receipt, logs, isSuccess } = useTransactionLogs(hash);
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isValid },
+  } = useForm<CreateCollectionForm>({
+    resolver: zodResolver(createCollectionSchema),
+    mode: "onChange",
+  });
+
+  const onSubmit = async (data: CreateCollectionForm) => {
+    if (!address) {
+      alert("Please connect your wallet first");
+      return;
+    }
+
+    try {
+      logEvent("creator_create", { mode: "new", title: data.title });
+
+      // TODO: 目前没支持图片，后续可能会有扩展
+      const collectionParams = {
+        name: data.title,
+        symbol: data.symbol,
+        config: {
+          ptype: ProductType.NORMAL,
+          price: parseEther(data.price),
+          maxSupply: data.supply,
+          unrevealedUri: "", // 普通NFT不需要
+          creator: address,
+          registry: REGISTRY_ADDRESS,
+        },
+        styles: createNormalStyle(data.baseUri, data.supply),
+      };
+
+      await createCollection(collectionParams);
+
+      // if (isConfirmed) {
+      //   closeModal();
+      // }
+    } catch (err) {
+      console.error("Failed to create collection:", err);
+    }
+  };
+
+  useEffect(() => {
+    if (isConfirmed && isSuccess) {
+      console.log("work-creating logs:", logs);
+      // TODO: 目前看了下好像没有业务 logs，后续可能得加一下
+      closeModal();
+    }
+  }, [isConfirmed, isSuccess, receipt, logs, closeModal]);
+
   return (
     <BaseModal
       open
@@ -307,44 +435,120 @@ function CreatorNewModal() {
       description="Define edition supply, sale format, and redemption rules. You can save drafts and revisit from the studio dashboard."
       footer={
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
-          <Button variant="tertiary" onClick={closeModal}>
+          <Button
+            variant="tertiary"
+            onClick={closeModal}
+            disabled={isPending || isConfirming}
+          >
             Cancel
           </Button>
           <Button
-            onClick={() => {
-              logEvent("creator_create", { mode: "new" });
-              closeModal();
-            }}
+            onClick={handleSubmit(onSubmit)}
+            disabled={!isValid || isPending || isConfirming}
           >
-            Create draft
+            {isPending || isConfirming ? "Creating..." : "Create Collection"}
           </Button>
         </div>
       }
     >
-      <div className="grid gap-6 md:grid-cols-2">
+      <form
+        onSubmit={handleSubmit(onSubmit)}
+        className="grid gap-6 md:grid-cols-2"
+      >
         <div>
           <Label htmlFor="work-title">Title*</Label>
-          <Input id="work-title" placeholder="Enter work title" />
+          <Input
+            id="work-title"
+            placeholder="Enter work title"
+            {...register("title")}
+          />
+          {errors.title && (
+            <p className="mt-1 text-sm text-red-400">{errors.title.message}</p>
+          )}
         </div>
+
+        <div>
+          <Label htmlFor="work-symbol">Symbol*</Label>
+          <Input
+            id="work-symbol"
+            placeholder="e.g. ART"
+            {...register("symbol")}
+          />
+          {errors.symbol && (
+            <p className="mt-1 text-sm text-red-400">{errors.symbol.message}</p>
+          )}
+        </div>
+
         <div>
           <Label htmlFor="work-supply">Edition Supply*</Label>
-          <Input id="work-supply" placeholder="Edition of 50" />
+          <Input
+            id="work-supply"
+            type="number"
+            placeholder="50"
+            {...register("supply", { valueAsNumber: true })}
+          />
+          {errors.supply && (
+            <p className="mt-1 text-sm text-red-400">{errors.supply.message}</p>
+          )}
         </div>
+
+        <div>
+          <Label htmlFor="work-price">Price (ETH)*</Label>
+          <Input id="work-price" placeholder="0.1" {...register("price")} />
+          {errors.price && (
+            <p className="mt-1 text-sm text-red-400">{errors.price.message}</p>
+          )}
+        </div>
+
         <div className="md:col-span-2">
           <Label htmlFor="work-description">Description*</Label>
-          <Textarea id="work-description" rows={4} placeholder="Describe the physical tie-in, materials, and story." />
+          <Textarea
+            id="work-description"
+            rows={4}
+            placeholder="Describe the physical tie-in, materials, and story."
+            {...register("description")}
+          />
+          {errors.description && (
+            <p className="mt-1 text-sm text-red-400">
+              {errors.description.message}
+            </p>
+          )}
         </div>
+
+        <div className="md:col-span-2">
+          <Label htmlFor="work-baseuri">Base URI*</Label>
+          <Input
+            id="work-baseuri"
+            placeholder="https://api.example.com/metadata/"
+            {...register("baseUri")}
+          />
+          {errors.baseUri && (
+            <p className="mt-1 text-sm text-red-400">
+              {errors.baseUri.message}
+            </p>
+          )}
+        </div>
+
+        {error && (
+          <div className="md:col-span-2 rounded-[14px] border border-red-400/20 bg-red-400/10 p-4 text-sm text-red-400">
+            Error: {error.message}
+          </div>
+        )}
+
         <div className="md:col-span-2 rounded-[14px] border border-[rgba(38,39,43,0.75)] bg-[rgba(12,12,14,0.78)] p-4 text-sm text-text-secondary">
-          Redemption workflows connect to your selected fulfilment partner. Configure shipping cost handoff later.
+          Redemption workflows connect to your selected fulfilment partner.
+          Configure shipping cost handoff later.
         </div>
-      </div>
+      </form>
     </BaseModal>
   );
 }
 
 function CreatorDraftModal({ draftId }: { draftId?: string }) {
   const { closeModal } = useModalStore();
-  const draft = draftId ? creatorDrafts.find((item) => item.id === draftId) : undefined;
+  const draft = draftId
+    ? creatorDrafts.find((item) => item.id === draftId)
+    : undefined;
 
   return (
     <BaseModal
@@ -388,16 +592,26 @@ function CreatorDraftModal({ draftId }: { draftId?: string }) {
           <Label htmlFor="draft-notes" optional>
             Notes
           </Label>
-          <Textarea id="draft-notes" rows={5} placeholder="Notes for collaborators" />
+          <Textarea
+            id="draft-notes"
+            rows={5}
+            placeholder="Notes for collaborators"
+          />
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="rounded-[14px] border border-[rgba(38,39,43,0.75)] bg-[rgba(12,12,14,0.78)] p-4 text-sm text-text-secondary">
             <p className="font-semibold text-text-primary">Sale format</p>
-            <p className="mt-2 text-text-secondary">Configure fixed, auction, or blind box once artwork uploads.</p>
+            <p className="mt-2 text-text-secondary">
+              Configure fixed, auction, or blind box once artwork uploads.
+            </p>
           </div>
           <div className="rounded-[14px] border border-[rgba(38,39,43,0.75)] bg-[rgba(12,12,14,0.78)] p-4 text-sm text-text-secondary">
-            <p className="font-semibold text-text-primary">Physical fulfilment</p>
-            <p className="mt-2 text-text-secondary">Select courier and packaging templates for redemption.</p>
+            <p className="font-semibold text-text-primary">
+              Physical fulfilment
+            </p>
+            <p className="mt-2 text-text-secondary">
+              Select courier and packaging templates for redemption.
+            </p>
           </div>
         </div>
       </div>
@@ -437,15 +651,24 @@ function AiPresetModal({ source }: { source?: string }) {
             className="flex gap-4 rounded-[16px] border border-[rgba(38,39,43,0.75)] bg-[rgba(12,12,14,0.78)] p-4"
           >
             <div className="relative h-24 w-24 overflow-hidden rounded-[12px]">
-              <Image src={preset.thumbnail} alt={preset.name} fill className="object-cover" />
+              <Image
+                src={preset.thumbnail}
+                alt={preset.name}
+                fill
+                className="object-cover"
+              />
             </div>
             <div className="space-y-2">
-              <h3 className="text-lg font-semibold text-text-primary">{preset.name}</h3>
+              <h3 className="text-lg font-semibold text-text-primary">
+                {preset.name}
+              </h3>
               <p className="text-sm text-text-secondary">{preset.prompt}</p>
               <Button
                 size="sm"
                 variant="secondary"
-                onClick={() => logEvent("ai_generate", { source, preset: preset.id })}
+                onClick={() =>
+                  logEvent("ai_generate", { source, preset: preset.id })
+                }
               >
                 Generate variation
               </Button>
@@ -467,7 +690,10 @@ export function ModalsRoot() {
 
   if (!modal) return null;
 
-  if (!asset && ["auction", "blindBox", "walletPrompt", "redemption"].includes(modal.type)) {
+  if (
+    !asset &&
+    ["auction", "blindBox", "walletPrompt", "redemption"].includes(modal.type)
+  ) {
     closeModal();
     return null;
   }
@@ -484,9 +710,15 @@ export function ModalsRoot() {
     case "creatorNew":
       return <CreatorNewModal />;
     case "creatorDraft":
-      return <CreatorDraftModal draftId={modal.payload?.draftId as string | undefined} />;
+      return (
+        <CreatorDraftModal
+          draftId={modal.payload?.draftId as string | undefined}
+        />
+      );
     case "aiPreset":
-      return <AiPresetModal source={modal.payload?.source as string | undefined} />;
+      return (
+        <AiPresetModal source={modal.payload?.source as string | undefined} />
+      );
     default:
       return null;
   }

@@ -58,21 +58,13 @@ export function MainNav() {
     >
       <Container className="flex h-20 items-center justify-between gap-6">
         <div className="flex items-center gap-12">
-          {/* <Link
-            href="/"
-            className="flex items-center gap-3 text-lg font-semibold tracking-wide text-text-primary"
-            onClick={() => trackNavClick({ menu: "logo" })}
-          >
-            <span className="flex h-11 w-11 items-center justify-center rounded-[14px] bg-[radial-gradient(circle_at_30%_20%,rgba(230,195,106,0.55),rgba(26,20,36,0.95))] text-2xl font-bold text-canvas">
-              S
-            </span>
-            Stillform
-          </Link> */}
           <Image
             src="/images/transparent-bg-logo.png"
+            onClick={() => router.push("/")}
             alt="logo"
             width={100}
             height={100}
+            className="cursor-pointer"
           />
 
           <nav className="hidden items-center gap-6 md:flex">
