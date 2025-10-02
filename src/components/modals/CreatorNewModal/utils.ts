@@ -13,5 +13,5 @@ export const createCollectionSchema = z.object({
     .string()
     .min(1, "Description is required")
     .max(1000, "Description too long"),
-  baseUri: z.string().url("Must be a valid URL"),
+  image: z.string().optional().or(z.literal("")), // IPFS hash for the collection image
 });

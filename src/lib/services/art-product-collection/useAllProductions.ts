@@ -18,6 +18,12 @@ export interface ProductionCollection {
     creator: `0x${string}`;
     registry: `0x${string}`;
   };
+  styles?: Array<{
+    weightBp: number;
+    maxSupply: number;
+    minted: number;
+    baseUri: string;
+  }>;
   blockNumber: bigint;
   transactionHash: `0x${string}`;
 }
@@ -33,6 +39,7 @@ export async function fetchAllProductions(
     // For each collection event, fetch detailed information
     const productionPromises = events.map(
       async (event: CollectionCreatedEvent) => {
+        console.log("event", event);
         try {
           // Note: In a full implementation, we would make actual contract calls here
           // to fetch name(), symbol(), totalSupply(), and config() from each collection
@@ -52,6 +59,14 @@ export async function fetchAllProductions(
               registry:
                 "0x0000000000000000000000000000000000000000" as `0x${string}`,
             },
+            styles: [
+              {
+                weightBp: 10000,
+                maxSupply: 0,
+                minted: 0,
+                baseUri: `https://api.dicebear.com/7.x/shapes/svg?seed=${event.collection}`, // Placeholder image
+              },
+            ],
             blockNumber: event.blockNumber,
             transactionHash: event.transactionHash,
           } as ProductionCollection;
@@ -78,43 +93,4 @@ export async function fetchAllProductions(
  * Hook版本，适用于React组件中使用
  * 一期暂时先从最近 n 个区块里面读，后续改为走后端接口
  */
-export function useAllProductions(blocksToScan: number = 1000) {
-  const {
-    collections: events,
-    isLoading: eventsLoading,
-    error: eventsError,
-  } = useRecentCollections(blocksToScan);
-  const [productions, setProductions] = useState<ProductionCollection[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!events.length || eventsLoading) return;
-
-    const fetchCollectionDetails = async () => {
-      setIsLoading(true);
-      setError(null);
-
-      try {
-        const results = await fetchAllProductions(events);
-        setProductions(results);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Unknown error");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchCollectionDetails();
-  }, [events, eventsLoading]);
-
-  return {
-    productions,
-    isLoading: eventsLoading || isLoading,
-    error: eventsError || error,
-    refetch: () => {
-      // This would trigger a refetch of the events
-      setError(null);
-    },
-  };
-}
+export function useAllProductions() {}

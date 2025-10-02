@@ -8,40 +8,6 @@ const COLLECTION_FACTORY_ABI = parseAbi([
   "function createCollection(string name, string symbol, (uint8 ptype, uint256 price, uint32 maxSupply, string unrevealedUri, address creator, address registry) config, (uint16 weightBp, uint32 maxSupply, uint32 minted, string baseUri)[] styles) returns (address collection)",
 ]);
 
-/**
- * Hook for creating a new NFT collection
- *
- * @example
- * ```tsx
- * const { createCollection, isPending, error } = useCreateCollection()
- *
- * const handleCreate = async () => {
- *   try {
- *     const result = await createCollection({
- *       name: "My Collection",
- *       symbol: "MC",
- *       config: {
- *         ptype: ProductType.NORMAL,
- *         price: parseEther("0.1"),
- *         maxSupply: 1000,
- *         unrevealedUri: "",
- *         creator: "0x...",
- *         registry: REGISTRY_ADDRESS
- *       },
- *       styles: [{
- *         weightBp: 10000,
- *         maxSupply: 1000,
- *         minted: 0,
- *         baseUri: "https://..."
- *       }]
- *     })
- *     console.log('Collection created:', result)
- *   } catch (err) {
- *     console.error('Failed to create collection:', err)
- *   }
- * }
- * ```
- */
 export function useCreateCollection() {
   const { writeContract, data: hash, isPending, error } = useWriteContract();
 

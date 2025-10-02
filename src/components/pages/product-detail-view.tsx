@@ -1,7 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { usePathname } from "next/navigation";
 import { Container } from "@/components/layout/container";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -9,8 +10,10 @@ import { Tabs } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { Table, Thead, Tbody, Tr, Th, Td } from "@/components/ui/table";
 import { useModalStore } from "@/lib/stores/modal-store";
+import { useAssetStore } from "@/lib/stores/assset-store";
 import type { Asset } from "@/lib/types";
 import { useAnalytics } from "@/lib/analytics";
+import { usePrimaryPurchase } from "@/lib/contracts";
 
 const TAB_ITEMS = [
   { value: "about", label: "About" },
@@ -24,64 +27,148 @@ interface ProductDetailViewProps {
   viewerOwns?: boolean;
 }
 
-export function ProductDetailView({ asset, viewerOwns }: ProductDetailViewProps) {
+export function ProductDetailView({
+  asset,
+  viewerOwns,
+}: ProductDetailViewProps) {
   const { openModal } = useModalStore();
   const [activeTab, setActiveTab] = useState("about");
   const trackAction = useAnalytics("product_action");
+  const pathname = usePathname();
+  const assets = useAssetStore((s) => s.assets);
+  const [hashId, setHashId] = useState<string | undefined>(undefined);
+  const { purchaseEth, isPending, isConfirming, isConfirmed, error } =
+    usePrimaryPurchase();
 
-  const actionButton = () => {
+  // Watch the URL hash (e.g., #0xABC...) and keep it in state
+  useEffect(() => {
+    const readHash = () => {
+      if (typeof window === "undefined") return;
+      const raw = window.location.hash;
+      setHashId(raw ? raw.slice(1) || undefined : undefined);
+    };
+    readHash();
+    window.addEventListener("hashchange", readHash);
+    return () => window.removeEventListener("hashchange", readHash);
+  }, []);
+
+  // Derive the assetId from the current URL (hash has priority), e.g. /product/0xABC...#0xABC...
+  const assetIdFromPath = useMemo(() => {
+    if (!pathname) return undefined;
+    const seg = pathname.split("/").filter(Boolean).pop();
+    return seg as string | undefined;
+  }, [pathname]);
+
+  const resolvedAssetId = hashId ?? assetIdFromPath;
+
+  // Prefer prop asset, otherwise resolve from store by URL id/hash
+  const viewAsset: Asset | undefined = useMemo(() => {
+    if (asset) return asset;
+    if (!resolvedAssetId) return undefined;
+    return assets.find(
+      (a) => a.id.toLowerCase() === resolvedAssetId.toLowerCase()
+    );
+  }, [asset, resolvedAssetId, assets]);
+
+  // Render primary action(s) using the resolved asset id
+  const renderActions = () => {
+    if (!viewAsset) return null;
     if (viewerOwns) {
       return (
         <div className="flex flex-wrap gap-3">
           <Button
             onClick={() => {
-              openModal("redemption", { assetId: asset.id });
-              trackAction({ type: "request_redemption", id: asset.id });
+              openModal("redemption", { assetId: viewAsset.id });
+              trackAction({ type: "request_redemption", id: viewAsset.id });
             }}
           >
             Request Redemption
           </Button>
-          <Button variant="secondary" onClick={() => trackAction({ type: "ai_variations", id: asset.id })}>
+          <Button
+            variant="secondary"
+            onClick={() =>
+              trackAction({ type: "ai_variations", id: viewAsset.id })
+            }
+          >
             AI Recreate
           </Button>
         </div>
       );
     }
-
-    switch (asset.saleType) {
-      case "auction":
-        return (
-          <Button
-            onClick={() => {
-              openModal("auction", { assetId: asset.id });
-            }}
-          >
-            Place Bid
-          </Button>
-        );
-      case "blind":
-        return (
-          <Button
-            onClick={() => {
-              openModal("blindBox", { assetId: asset.id });
-            }}
-          >
-            Open Blind Box
-          </Button>
-        );
-      default:
-        return (
-          <Button
-            onClick={() => {
-              openModal("walletPrompt", { assetId: asset.id });
-              trackAction({ type: "buy", id: asset.id });
-            }}
-          >
-            Buy Now
-          </Button>
-        );
+    if (viewAsset.saleType === "auction") {
+      return (
+        <Button onClick={() => openModal("auction", { assetId: viewAsset.id })}>
+          Place Bid
+        </Button>
+      );
     }
+    if (viewAsset.saleType === "blind") {
+      return (
+        <Button
+          onClick={() => openModal("blindBox", { assetId: viewAsset.id })}
+        >
+          Open Blind Box
+        </Button>
+      );
+    }
+    return (
+      <Button
+        disabled={isPending || isConfirming}
+        onClick={async () => {
+          try {
+            const priceStr = (viewAsset.price || "").toString().trim();
+            // Expect formats like "0.05 ETH" -> take the first token as ETH amount
+            const priceEth = priceStr.split(/\s+/)[0] || "0";
+
+            // const ok =
+            //   typeof window !== "undefined"
+            //     ? window.confirm(
+            //         `Confirm purchase?\n\nCollection: ${viewAsset.id}\nPrice: ${priceEth} ETH`
+            //       )
+            //     : true;
+            // if (!ok) return;
+
+            trackAction({ type: "buy", id: viewAsset.id });
+            await purchaseEth(viewAsset.id as `0x${string}`, priceEth);
+          } catch (err) {
+            console.error("purchase failed", err);
+          }
+        }}
+      >
+        {isPending || isConfirming ? "Processing..." : "Buy Now"}
+      </Button>
+    );
   };
+
+  // Fallback UI when asset cannot be resolved (e.g., deep link without prior hydration)
+  if (!viewAsset) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-text-primary mb-4">
+            Asset Not Found
+          </h1>
+          <p className="text-text-secondary mb-2">
+            {assetIdFromPath ? (
+              <>
+                Unable to load asset for{" "}
+                <span className="font-mono">{assetIdFromPath}</span>.
+              </>
+            ) : (
+              "Unable to resolve asset from URL."
+            )}
+          </p>
+          <p className="text-text-secondary mb-4">
+            Visit the marketplace to hydrate on-chain collections, then try
+            again.
+          </p>
+          <a href="/market" className="text-gold hover:text-gold/80 underline">
+            Go to Marketplace
+          </a>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="pb-24">
@@ -89,37 +176,55 @@ export function ProductDetailView({ asset, viewerOwns }: ProductDetailViewProps)
         <Container className="grid gap-16 py-16 lg:grid-cols-[1.1fr_0.9fr]">
           <div className="space-y-6">
             <div className="relative overflow-hidden rounded-[20px] border border-[rgba(207,175,109,0.25)]">
-              <Image src={asset.image} alt={asset.title} width={960} height={1200} className="h-full w-full object-cover" />
+              <img
+                src={viewAsset.image}
+                alt={viewAsset.title}
+                className="h-full w-full object-cover"
+              />
             </div>
             <div className="rounded-[16px] border border-[rgba(38,39,43,0.75)] bg-[rgba(12,12,14,0.78)] p-5 text-sm text-text-secondary">
-              Physical redemption included for Epic tiers. Shipments originate from Stillform Vault NYC.
+              Physical redemption included for Epic tiers. Shipments originate
+              from Stillform Vault NYC.
             </div>
           </div>
 
           <div className="space-y-8">
             <div className="space-y-4">
-              <Badge variant="gold">{asset.chain}</Badge>
-              <h1 className="font-display text-4xl text-text-primary">{asset.title}</h1>
-              <p className="text-lg text-text-secondary">{asset.artist.name}</p>
-              <p className="text-sm text-text-secondary">{asset.edition}</p>
+              <Badge variant="gold">{viewAsset.chain}</Badge>
+              <h1 className="font-display text-4xl text-text-primary">
+                {viewAsset.title}
+              </h1>
+              <p className="text-lg text-text-secondary">
+                {viewAsset.artist.name}
+              </p>
+              <p className="text-sm text-text-secondary">{viewAsset.edition}</p>
             </div>
 
             <div className="space-y-4">
-              {asset.saleType === "auction" ? (
+              {viewAsset.saleType === "auction" ? (
                 <Card className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-text-secondary">Highest Bid</span>
-                    <span className="text-2xl text-gold">{asset.highestBid}</span>
+                    <span className="text-sm text-text-secondary">
+                      Highest Bid
+                    </span>
+                    <span className="text-2xl text-gold">
+                      {viewAsset.highestBid}
+                    </span>
                   </div>
                   <div className="text-xs uppercase tracking-[0.25em] text-text-secondary/70">
-                    Ends {asset.endTime ? new Date(asset.endTime).toLocaleString() : "TBD"}
+                    Ends{" "}
+                    {viewAsset.endTime
+                      ? new Date(viewAsset.endTime).toLocaleString()
+                      : "TBD"}
                   </div>
                 </Card>
               ) : (
                 <Card className="space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-text-secondary">Price</span>
-                    <span className="text-2xl text-text-primary">{asset.price}</span>
+                    <span className="text-2xl text-text-primary">
+                      {viewAsset.price}
+                    </span>
                   </div>
                   <div className="text-xs uppercase tracking-[0.25em] text-text-secondary/70">
                     Physical redemption eligible
@@ -128,10 +233,10 @@ export function ProductDetailView({ asset, viewerOwns }: ProductDetailViewProps)
               )}
             </div>
 
-            {actionButton()}
+            {renderActions()}
 
             <div className="space-y-3 text-text-secondary">
-              <p>{asset.description}</p>
+              <p>{viewAsset.description}</p>
             </div>
           </div>
         </Container>
@@ -142,17 +247,20 @@ export function ProductDetailView({ asset, viewerOwns }: ProductDetailViewProps)
 
         {activeTab === "about" ? (
           <Card className="space-y-4">
-            <h2 className="font-display text-2xl text-text-primary">Artist Statement</h2>
+            <h2 className="font-display text-2xl text-text-primary">
+              Artist Statement
+            </h2>
             <p className="text-text-secondary">
-              This piece bridges Stillform&apos;s analog captured crystals with on-chain rarity logic. Each
-              collector receives a companion archival print on redemption.
+              This piece bridges Stillform&apos;s analog captured crystals with
+              on-chain rarity logic. Each collector receives a companion
+              archival print on redemption.
             </p>
           </Card>
         ) : null}
 
         {activeTab === "attributes" ? (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {asset.attributes?.map((attribute) => (
+            {viewAsset.attributes?.map((attribute) => (
               <Card key={attribute.label} className="space-y-1">
                 <p className="text-xs uppercase tracking-[0.25em] text-text-secondary/70">
                   {attribute.label}
@@ -174,7 +282,7 @@ export function ProductDetailView({ asset, viewerOwns }: ProductDetailViewProps)
                 </Tr>
               </Thead>
               <Tbody>
-                {asset.provenance?.map((entry) => (
+                {viewAsset.provenance?.map((entry) => (
                   <Tr key={entry.tx}>
                     <Td className="font-mono text-sm">{entry.tx}</Td>
                     <Td>{new Date(entry.date).toLocaleString()}</Td>
@@ -199,7 +307,7 @@ export function ProductDetailView({ asset, viewerOwns }: ProductDetailViewProps)
                 </Tr>
               </Thead>
               <Tbody>
-                {asset.activity?.map((event, index) => (
+                {viewAsset.activity?.map((event, index) => (
                   <Tr key={`${event.type}-${index}`}>
                     <Td className="capitalize">{event.type}</Td>
                     <Td>{event.from}</Td>

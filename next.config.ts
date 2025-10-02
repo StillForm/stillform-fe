@@ -12,9 +12,9 @@ const nextConfig: NextConfig = {
         hostname: "cdn.statically.io",
       },
       {
-        protocol: 'https',
-        hostname: 'equal-brown-cougar.myfilebase.com',
-        pathname: '/ipfs/**',
+        protocol: "https",
+        hostname: "equal-brown-cougar.myfilebase.com",
+        pathname: "/ipfs/**",
       },
       {
         protocol: "https",

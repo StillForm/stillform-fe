@@ -1,10 +1,7 @@
 "use client";
 
-import { useMemo, useEffect } from "react";
+import { useMemo, useEffect, useState } from "react";
 import Image from "next/image";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { parseEther } from "viem";
 import { BaseModal } from "@/components/modals/base-modal";
 import { Button } from "@/components/ui/button";
 import { useModalStore } from "@/lib/stores/modal-store";
@@ -20,16 +17,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import type { Asset } from "@/lib/types";
 import { logEvent } from "@/lib/analytics";
-import {
-  useCreateCollection,
-  ProductType,
-  REGISTRY_ADDRESS,
-  createNormalStyle,
-  useTransactionLogs,
-} from "@/lib/contracts";
-import { useAccount } from "wagmi";
-import { CreateCollectionForm, createCollectionSchema } from "./utils";
-import { toast } from "sonner";
+import CreatorNewModal from "./CreatorNewModal";
 
 function AuctionModal({ asset }: { asset: Asset }) {
   const { closeModal } = useModalStore();
@@ -361,189 +349,6 @@ function RedemptionModal({ asset }: { asset: Asset }) {
   );
 }
 
-/** 创建新的作品 */
-function CreatorNewModal() {
-  const { closeModal } = useModalStore();
-  const { address } = useAccount();
-  const {
-    createCollection,
-    hash,
-    isPending,
-    isConfirming,
-    isConfirmed,
-    error,
-  } = useCreateCollection();
-
-  const { receipt, logs, isSuccess } = useTransactionLogs(hash);
-
-  const {
-    register,
-    handleSubmit,
-    formState: { errors, isValid },
-  } = useForm<CreateCollectionForm>({
-    resolver: zodResolver(createCollectionSchema),
-    mode: "onChange",
-  });
-
-  const onSubmit = async (data: CreateCollectionForm) => {
-    if (!address) {
-      alert("Please connect your wallet first");
-      return;
-    }
-
-    try {
-      logEvent("creator_create", { mode: "new", title: data.title });
-
-      // TODO: 目前没支持图片，后续可能会有扩展
-      const collectionParams = {
-        name: data.title,
-        symbol: data.symbol,
-        config: {
-          ptype: ProductType.NORMAL,
-          price: parseEther(data.price),
-          maxSupply: data.supply,
-          unrevealedUri: "", // 普通NFT不需要
-          creator: address,
-          registry: REGISTRY_ADDRESS,
-        },
-        styles: createNormalStyle(data.baseUri, data.supply),
-      };
-
-      await createCollection(collectionParams);
-
-      // if (isConfirmed) {
-      //   closeModal();
-      // }
-    } catch (err) {
-      console.error("Failed to create collection:", err);
-    }
-  };
-
-  useEffect(() => {
-    if (isConfirmed && isSuccess) {
-      console.log("work-creating logs:", logs);
-      // TODO: 目前看了下好像没有业务 logs，后续可能得加一下
-      closeModal();
-    }
-  }, [isConfirmed, isSuccess, receipt, logs, closeModal]);
-
-  return (
-    <BaseModal
-      open
-      onClose={closeModal}
-      title="New work"
-      description="Define edition supply, sale format, and redemption rules. You can save drafts and revisit from the studio dashboard."
-      footer={
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
-          <Button
-            variant="tertiary"
-            onClick={closeModal}
-            disabled={isPending || isConfirming}
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={handleSubmit(onSubmit)}
-            disabled={!isValid || isPending || isConfirming}
-          >
-            {isPending || isConfirming ? "Creating..." : "Create Collection"}
-          </Button>
-        </div>
-      }
-    >
-      <form
-        onSubmit={handleSubmit(onSubmit)}
-        className="grid gap-6 md:grid-cols-2"
-      >
-        <div>
-          <Label htmlFor="work-title">Title*</Label>
-          <Input
-            id="work-title"
-            placeholder="Enter work title"
-            {...register("title")}
-          />
-          {errors.title && (
-            <p className="mt-1 text-sm text-red-400">{errors.title.message}</p>
-          )}
-        </div>
-
-        <div>
-          <Label htmlFor="work-symbol">Symbol*</Label>
-          <Input
-            id="work-symbol"
-            placeholder="e.g. ART"
-            {...register("symbol")}
-          />
-          {errors.symbol && (
-            <p className="mt-1 text-sm text-red-400">{errors.symbol.message}</p>
-          )}
-        </div>
-
-        <div>
-          <Label htmlFor="work-supply">Edition Supply*</Label>
-          <Input
-            id="work-supply"
-            type="number"
-            placeholder="50"
-            {...register("supply", { valueAsNumber: true })}
-          />
-          {errors.supply && (
-            <p className="mt-1 text-sm text-red-400">{errors.supply.message}</p>
-          )}
-        </div>
-
-        <div>
-          <Label htmlFor="work-price">Price (ETH)*</Label>
-          <Input id="work-price" placeholder="0.1" {...register("price")} />
-          {errors.price && (
-            <p className="mt-1 text-sm text-red-400">{errors.price.message}</p>
-          )}
-        </div>
-
-        <div className="md:col-span-2">
-          <Label htmlFor="work-description">Description*</Label>
-          <Textarea
-            id="work-description"
-            rows={4}
-            placeholder="Describe the physical tie-in, materials, and story."
-            {...register("description")}
-          />
-          {errors.description && (
-            <p className="mt-1 text-sm text-red-400">
-              {errors.description.message}
-            </p>
-          )}
-        </div>
-
-        <div className="md:col-span-2">
-          <Label htmlFor="work-baseuri">Base URI*</Label>
-          <Input
-            id="work-baseuri"
-            placeholder="https://api.example.com/metadata/"
-            {...register("baseUri")}
-          />
-          {errors.baseUri && (
-            <p className="mt-1 text-sm text-red-400">
-              {errors.baseUri.message}
-            </p>
-          )}
-        </div>
-
-        {error && (
-          <div className="md:col-span-2 rounded-[14px] border border-red-400/20 bg-red-400/10 p-4 text-sm text-red-400">
-            Error: {error.message}
-          </div>
-        )}
-
-        <div className="md:col-span-2 rounded-[14px] border border-[rgba(38,39,43,0.75)] bg-[rgba(12,12,14,0.78)] p-4 text-sm text-text-secondary">
-          Redemption workflows connect to your selected fulfilment partner.
-          Configure shipping cost handoff later.
-        </div>
-      </form>
-    </BaseModal>
-  );
-}
-
 function CreatorDraftModal({ draftId }: { draftId?: string }) {
   const { closeModal } = useModalStore();
   const draft = draftId
@@ -680,6 +485,7 @@ function AiPresetModal({ source }: { source?: string }) {
   );
 }
 
+// TODO: 后续所有子组件单独挪出去
 export function ModalsRoot() {
   const { modal, closeModal } = useModalStore();
 

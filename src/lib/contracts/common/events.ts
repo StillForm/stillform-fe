@@ -65,9 +65,9 @@ export interface CollectionCreatedEvent {
 
 /**
  * Hook to scan recent blocks for CollectionCreated events
- * @param blocksToScan Number of recent blocks to scan (default: 1000)
+ * @param blocksToScan Number of recent blocks to scan (default: 10000)
  */
-export function useRecentCollections(blocksToScan: number = 1000) {
+export function useRecentCollections(blocksToScan: number = 10000) {
   const publicClient = usePublicClient();
   const [collections, setCollections] = useState<CollectionCreatedEvent[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -143,14 +143,14 @@ export function useRecentCollections(blocksToScan: number = 1000) {
  * Hook to get collections created by a specific user from recent blocks
  */
 export function useUserRecentCollections(
-  userAddress: `0x${string}` | undefined,
-  blocksToScan: number = 1000
+  userAddress: `0x${string}` | undefined
 ) {
-  const { collections, isLoading, error, refetch } = useRecentCollections(blocksToScan);
+  const { collections, isLoading, error, refetch } = useRecentCollections();
 
   const userCollections = collections.filter(
     (collection) =>
-      userAddress && collection.creator.toLowerCase() === userAddress.toLowerCase()
+      userAddress &&
+      collection.creator.toLowerCase() === userAddress.toLowerCase()
   );
 
   return {

@@ -31,7 +31,10 @@ export function AssetCard({ asset }: { asset: Asset }) {
   const { openModal } = useModalStore();
 
   const actionLabel = saleTypeCopy[asset.saleType];
-  const timeRemaining = useMemo(() => formatTimeRemaining(asset.endTime), [asset.endTime]);
+  const timeRemaining = useMemo(
+    () => formatTimeRemaining(asset.endTime),
+    [asset.endTime]
+  );
 
   const handleAction = () => {
     if (asset.saleType === "auction") {
@@ -48,12 +51,25 @@ export function AssetCard({ asset }: { asset: Asset }) {
 
   return (
     <Card interactive className="flex flex-col overflow-hidden">
-      <Link href={`/product/${asset.id}`} className="relative block overflow-hidden rounded-[12px]">
+      <Link
+        href={`/product/${asset.id}`}
+        className="relative block overflow-hidden rounded-[12px]"
+      >
         <div className="relative aspect-[4/5] w-full">
-          <Image src={asset.image} alt={asset.title} fill className="object-cover transition duration-500 group-hover:scale-105" />
+          <img
+            src={asset.image}
+            alt={asset.title}
+            className="object-cover transition duration-500 group-hover:scale-105"
+          />
         </div>
         <div className="absolute left-4 top-4 flex items-center gap-2">
-          <Badge variant="gold">{asset.saleType === "blind" ? "Blind" : asset.saleType === "auction" ? "Auction" : "Fixed"}</Badge>
+          <Badge variant="gold">
+            {asset.saleType === "blind"
+              ? "Blind"
+              : asset.saleType === "auction"
+              ? "Auction"
+              : "Fixed"}
+          </Badge>
           {asset.rarity ? <Badge variant="purple">{asset.rarity}</Badge> : null}
         </div>
       </Link>
@@ -65,7 +81,10 @@ export function AssetCard({ asset }: { asset: Asset }) {
             <span>•</span>
             <span>{asset.edition}</span>
           </div>
-          <Link href={`/product/${asset.id}`} className="font-display text-xl text-text-primary">
+          <Link
+            href={`/product/${asset.id}`}
+            className="font-display text-xl text-text-primary"
+          >
             {asset.title}
           </Link>
           <p className="text-sm text-text-secondary">By {asset.artist.name}</p>
@@ -80,7 +99,8 @@ export function AssetCard({ asset }: { asset: Asset }) {
                   {timeRemaining}
                 </span>
                 <span>
-                  Highest Bid <span className="text-text-primary">{asset.highestBid}</span>
+                  Highest Bid{" "}
+                  <span className="text-text-primary">{asset.highestBid}</span>
                 </span>
               </>
             ) : asset.saleType === "blind" ? (

@@ -23,6 +23,7 @@ import "@mysten/dapp-kit/dist/index.css";
 import { wagmiConfig } from "@/lib/wallet/evm-config";
 import { suiNetworkConfig } from "@/lib/wallet/sui-config";
 import { WalletContextProvider } from "@/lib/wallet/wallet-context";
+import { AssetStoreProvider } from "@/lib/stores/assset-store";
 
 type ProvidersProps = {
   children: ReactNode;
@@ -40,19 +41,21 @@ export function Providers({ children }: ProvidersProps) {
           <SuiWalletProvider autoConnect>
             <SolanaProviders>
               <WalletContextProvider>
-                {children}
-                <Toaster
-                  position="top-right"
-                  duration={3200}
-                  toastOptions={{
-                    style: {
-                      background: "rgba(26, 20, 36, 0.88)",
-                      border: "1px solid rgba(207, 175, 109, 0.35)",
-                      color: "#F5F7FA",
-                      backdropFilter: "blur(14px)",
-                    },
-                  }}
-                />
+                <AssetStoreProvider>
+                  {children}
+                  <Toaster
+                    position="top-right"
+                    duration={3200}
+                    toastOptions={{
+                      style: {
+                        background: "rgba(26, 20, 36, 0.88)",
+                        border: "1px solid rgba(207, 175, 109, 0.35)",
+                        color: "#F5F7FA",
+                        backdropFilter: "blur(14px)",
+                      },
+                    }}
+                  />
+                </AssetStoreProvider>
               </WalletContextProvider>
             </SolanaProviders>
           </SuiWalletProvider>
