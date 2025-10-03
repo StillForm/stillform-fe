@@ -3,14 +3,16 @@ import { profileSummary } from "@/data/mock-data";
 import { notFound } from "next/navigation";
 
 interface ProfilePageProps {
-  params: Promise<{ handle: string }>;
+  params: Promise<{ address: `0x${string}` }>;
 }
 
 export default async function ProfilePage({ params }: ProfilePageProps) {
-  const { handle } = await params;
-  if (handle !== profileSummary.handle) {
-    notFound();
-  }
+  const res = await params;
+  // if (address !== profileSummary.handle) {
+  //   notFound();
+  // }
 
-  return <ProfileView />;
+  console.log("res", res);
+
+  return <ProfileView address={res.address} />;
 }

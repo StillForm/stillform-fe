@@ -114,9 +114,9 @@ export function MainNav() {
               )}
               onClick={() => {
                 trackNavClick({ menu: "wallet" });
-                if (hasProfile) {
+                if (activeWallet?.address) {
                   setPanelOpen(false);
-                  router.push(`/profile/${profileSummary.handle}`);
+                  router.push(`/profile/${activeWallet.address}`);
                   return;
                 }
                 togglePanel();

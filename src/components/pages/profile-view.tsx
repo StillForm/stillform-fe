@@ -11,13 +11,23 @@ import { Badge } from "@/components/ui/badge";
 import { useAnalytics } from "@/lib/analytics";
 import { useAssetStore } from "@/lib/stores/assset-store";
 import { useMemo } from "react";
-import { useAccount } from "wagmi";
 import { useUserAssets } from "@/lib/services";
+import { Twitter, Globe, MessageCircle, Instagram } from "lucide-react";
 
-export function ProfileView() {
+interface ProfileView {
+  address: `0x${string}`;
+}
+
+export function ProfileView({ address }: ProfileView) {
   const { assets } = useAssetStore();
   const trackAssetClick = useAnalytics("profile_asset_click");
-  const { address } = useAccount();
+
+  // 社交媒体图标配置
+  const socialLinks = [
+    { icon: Twitter, label: "X (formerly Twitter)", href: "#" },
+    { icon: MessageCircle, label: "Discord", href: "#" },
+    { icon: Instagram, label: "Instagram", href: "#" },
+  ];
 
   const createdAssets = useMemo(() => {
     return assets.filter((asset) => asset.artist.id === address);
@@ -57,22 +67,27 @@ export function ProfileView() {
             <div className="space-y-3">
               <div className="flex items-center gap-3">
                 <h1 className="font-display text-3xl text-text-primary">
-                  {profileSummary.handle}
+                  {truncateAddress(profileSummary.address, 6)}
                 </h1>
                 <Badge variant="gold">Creator</Badge>
               </div>
               <p className="text-sm text-text-secondary">
                 {profileSummary.bio}
               </p>
-              <div className="flex flex-wrap gap-2 text-sm text-text-secondary">
-                <span>{truncateAddress(profileSummary.address, 6)}</span>
-                <span>•</span>
-                <a
-                  href={profileSummary.socials[0]?.url}
-                  className="text-gold hover:text-gold/80"
-                >
-                  {profileSummary.socials[0]?.platform}
-                </a>
+              <div className="flex flex-wrap gap-4">
+                {socialLinks.map((social, index) => {
+                  const IconComponent = social.icon;
+                  return (
+                    <a
+                      key={index}
+                      href={social.href}
+                      className="rounded-full bg-text-secondary/10 p-2 text-text-secondary hover:bg-gold/20 hover:text-gold transition-all duration-200"
+                      aria-label={social.label}
+                    >
+                      <IconComponent className="h-4 w-4" />
+                    </a>
+                  );
+                })}
               </div>
             </div>
           </div>
