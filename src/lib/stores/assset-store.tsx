@@ -5,7 +5,10 @@ import type { Asset } from "@/lib/types";
 import { useEffect, useMemo, useRef } from "react";
 import { useWalletContext } from "@/lib/wallet/wallet-context";
 import { useRecentCollections } from "@/lib/contracts/common/events";
-import { useMultipleCollectionDetails } from "@/lib/contracts/collection-factory/useCollectionDetails";
+import {
+  CollectionDetails,
+  useMultipleCollectionDetails,
+} from "@/lib/contracts/collection-factory/useCollectionDetails";
 
 interface AssetState {
   assets: Asset[];
@@ -52,7 +55,7 @@ export const AssetStoreProvider = ({
   const { activeWallet } = useWalletContext();
   // Select only the action to avoid re-rendering this provider when assets state changes
   const setAssets = useAssetStore((s) => s.setAssets);
-  const { collections } = useRecentCollections();
+  const { collections } = useRecentCollections(1000);
 
   const collectionAddresses = useMemo<`0x${string}`[]>(() => {
     if (
@@ -68,10 +71,10 @@ export const AssetStoreProvider = ({
   const { collectionDetails } =
     useMultipleCollectionDetails(collectionAddresses);
 
-  const handleSetAssetsFromBlockchain = (detail) => {
+  const handleSetAssetsFromBlockchain = (detail: CollectionDetails) => {
     // 从 styles 中获取第一个 baseUri 作为图片
     const imageUrl =
-      detail.styles && detail.styles.length > 0
+      detail.styles.length > 0
         ? detail.styles[0].baseUri
         : `https://api.dicebear.com/7.x/shapes/svg?seed=${detail.address}`;
 
@@ -116,19 +119,16 @@ export const AssetStoreProvider = ({
     return [];
   }, [activeWallet?.source, collectionDetails]);
 
-  // Auto-load assets when processed assets change
   useEffect(() => {
+    console.log("collectionDetails=", processedAssets);
     if (processedAssets.length > 0) {
-      // Only update the store if data has actually changed
       const nextHash = JSON.stringify(processedAssets);
       if (nextHash !== assetsHashRef.current) {
-        console.log("collectionDetails=", processedAssets);
         setAssets(processedAssets);
         assetsHashRef.current = nextHash;
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [processedAssets]); // setAssets 是 Zustand store 函数，不需要作为依赖项
+  }, [processedAssets]);
 
   return <>{children}</>;
 };

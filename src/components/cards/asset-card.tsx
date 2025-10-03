@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useMemo } from "react";
 import { Clock, Sparkles } from "lucide-react";
@@ -10,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { useModalStore } from "@/lib/stores/modal-store";
 import type { Asset } from "@/lib/types";
 import { logEvent } from "@/lib/analytics";
+import { formatTimeRemaining } from "@/lib/utils";
 
 const saleTypeCopy: Record<Asset["saleType"], string> = {
   fixed: "Buy Now",
@@ -17,17 +17,12 @@ const saleTypeCopy: Record<Asset["saleType"], string> = {
   blind: "Open Blind Box",
 };
 
-function formatTimeRemaining(endTime?: string) {
-  if (!endTime) return null;
-  const end = new Date(endTime).getTime();
-  const diff = end - Date.now();
-  if (diff <= 0) return "Ended";
-  const hours = Math.floor(diff / (1000 * 60 * 60));
-  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-  return `${hours}h ${minutes}m left`;
+interface AssetCardProps {
+  asset: Asset;
+  className?: string;
 }
 
-export function AssetCard({ asset }: { asset: Asset }) {
+export function AssetCard({ asset, className }: AssetCardProps) {
   const { openModal } = useModalStore();
 
   const actionLabel = saleTypeCopy[asset.saleType];
@@ -50,7 +45,7 @@ export function AssetCard({ asset }: { asset: Asset }) {
   };
 
   return (
-    <Card interactive className="flex flex-col overflow-hidden">
+    <Card interactive className={`flex flex-col overflow-hidden ${className}`}>
       <Link
         href={`/product/${asset.id}`}
         className="relative block overflow-hidden rounded-[12px]"

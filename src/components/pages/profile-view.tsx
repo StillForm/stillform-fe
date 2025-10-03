@@ -5,13 +5,27 @@ import { Container } from "@/components/layout/container";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { AssetCard } from "@/components/cards/asset-card";
-import { profileSummary, profileAssets, profileActivity } from "@/data/mock-data";
+import {
+  profileSummary,
+  profileAssets,
+  profileActivity,
+} from "@/data/mock-data";
 import { truncateAddress } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { useAnalytics } from "@/lib/analytics";
+import { useAssetStore } from "@/lib/stores/assset-store";
+import { useMemo } from "react";
 
 export function ProfileView() {
+  const { assets } = useAssetStore();
   const trackAssetClick = useAnalytics("profile_asset_click");
+
+  const filteredAssets = useMemo(() => {
+    assets.filter((asset, index) => {
+      console.log("asset:", asset);
+      return null;
+    });
+  }, [assets]);
 
   return (
     <div className="pb-20">
@@ -29,18 +43,30 @@ export function ProfileView() {
         <div className="flex flex-col gap-10 rounded-[20px] border border-[rgba(207,175,109,0.3)] bg-[rgba(12,12,14,0.9)] p-8 lg:flex-row lg:items-end lg:justify-between">
           <div className="flex items-start gap-6">
             <div className="relative h-32 w-32 overflow-hidden rounded-full border-[3px] border-[rgba(207,175,109,0.6)]">
-              <Image src={profileSummary.avatar} alt={profileSummary.handle} fill className="object-cover" />
+              <Image
+                src={profileSummary.avatar}
+                alt={profileSummary.handle}
+                fill
+                className="object-cover"
+              />
             </div>
             <div className="space-y-3">
               <div className="flex items-center gap-3">
-                <h1 className="font-display text-3xl text-text-primary">{profileSummary.handle}</h1>
+                <h1 className="font-display text-3xl text-text-primary">
+                  {profileSummary.handle}
+                </h1>
                 <Badge variant="gold">Creator</Badge>
               </div>
-              <p className="text-sm text-text-secondary">{profileSummary.bio}</p>
+              <p className="text-sm text-text-secondary">
+                {profileSummary.bio}
+              </p>
               <div className="flex flex-wrap gap-2 text-sm text-text-secondary">
                 <span>{truncateAddress(profileSummary.address, 6)}</span>
                 <span>•</span>
-                <a href={profileSummary.socials[0]?.url} className="text-gold hover:text-gold/80">
+                <a
+                  href={profileSummary.socials[0]?.url}
+                  className="text-gold hover:text-gold/80"
+                >
                   {profileSummary.socials[0]?.platform}
                 </a>
               </div>
@@ -71,12 +97,17 @@ export function ProfileView() {
 
         <section className="space-y-6">
           <div className="flex items-center justify-between">
-            <h2 className="font-display text-2xl text-text-primary">Collected works</h2>
+            <h2 className="font-display text-2xl text-text-primary">
+              Collected works
+            </h2>
             <Button variant="tertiary">View all</Button>
           </div>
           <div className="grid gap-8 md:grid-cols-2 xl:grid-cols-3">
             {profileAssets.map((asset) => (
-              <div key={asset.id} onClick={() => trackAssetClick({ asset_id: asset.id })}>
+              <div
+                key={asset.id}
+                onClick={() => trackAssetClick({ asset_id: asset.id })}
+              >
                 <AssetCard asset={asset} />
               </div>
             ))}
@@ -94,7 +125,10 @@ export function ProfileView() {
                 <div className="flex items-center justify-between">
                   <p className="text-text-primary">{event.description}</p>
                   <time className="text-xs uppercase tracking-[0.25em] text-text-secondary/70">
-                    {new Date(event.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                    {new Date(event.timestamp).toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
                   </time>
                 </div>
               </div>

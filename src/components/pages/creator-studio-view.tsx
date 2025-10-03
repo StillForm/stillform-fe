@@ -5,13 +5,23 @@ import { useRouter } from "next/navigation";
 import { Container } from "@/components/layout/container";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { creatorCollections, creatorDrafts } from "@/data/mock-data";
+import { creatorDrafts } from "@/data/mock-data";
 import { useModalStore } from "@/lib/stores/modal-store";
 import { formatNumber } from "@/lib/utils";
+import { useAssetStore } from "@/lib/stores/assset-store";
+import { useMemo } from "react";
+import { useAccount } from "wagmi";
+import { AssetCard } from "../cards/asset-card";
 
 export function CreatorStudioView() {
   const router = useRouter();
   const { openModal } = useModalStore();
+  const { assets } = useAssetStore();
+  const { address } = useAccount();
+
+  const creatorCollections = useMemo(() => {
+    return assets.filter((asset) => asset.artist.id === address);
+  }, [assets, address]);
 
   return (
     <Container className="space-y-12 py-16">
@@ -56,60 +66,17 @@ export function CreatorStudioView() {
         </div>
         <div className="grid gap-6 md:grid-cols-2">
           {creatorCollections.map((collection) => (
-            <Card key={collection.id} className="overflow-hidden p-0">
-              <div className="relative h-48 w-full">
-                <Image
-                  src={collection.cover}
-                  alt={collection.title}
-                  fill
-                  className="object-cover"
-                />
-              </div>
-              <div className="space-y-3 px-6 py-5">
-                <h3 className="text-xl font-semibold text-text-primary">
-                  {collection.title}
-                </h3>
-                <dl className="grid grid-cols-2 gap-2 text-sm text-text-secondary">
-                  <div>
-                    <dt className="text-xs uppercase tracking-[0.25em] text-text-secondary/70">
-                      Items
-                    </dt>
-                    <dd className="text-text-primary">
-                      {collection.stats.items}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs uppercase tracking-[0.25em] text-text-secondary/70">
-                      Listed
-                    </dt>
-                    <dd className="text-text-primary">
-                      {collection.stats.listed}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs uppercase tracking-[0.25em] text-text-secondary/70">
-                      Floor
-                    </dt>
-                    <dd className="text-text-primary">
-                      {collection.stats.floorPrice}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs uppercase tracking-[0.25em] text-text-secondary/70">
-                      Volume
-                    </dt>
-                    <dd className="text-text-primary">
-                      {collection.stats.volume}
-                    </dd>
-                  </div>
-                </dl>
-              </div>
-            </Card>
+            <AssetCard
+              key={collection.id}
+              asset={collection}
+              className="w-full h-[720px] w-[438px]"
+            />
           ))}
         </div>
       </section>
 
-      <section className="space-y-6">
+      {/* TODO: 草稿态设计到同一个作品的状态修改，但是现阶段所有的产品全部都在链上，改动成本极其昂贵，所以这里等有了后端之后再实现 */}
+      {/* <section className="space-y-6">
         <div className="flex items-center justify-between">
           <h2 className="font-display text-2xl text-text-primary">Drafts</h2>
           <Button
@@ -134,13 +101,7 @@ export function CreatorStudioView() {
                 <h3 className="text-lg font-semibold text-text-primary">
                   {draft.title}
                 </h3>
-                <p className="text-sm text-text-secondary">
-                  Updated{" "}
-                  {new Date(draft.updatedAt).toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                </p>
+                <p className="text-sm text-text-secondary">Updated </p>
                 <Button
                   size="sm"
                   variant="secondary"
@@ -154,7 +115,7 @@ export function CreatorStudioView() {
             </Card>
           ))}
         </div>
-      </section>
+      </section> */}
 
       <section className="space-y-6">
         <h2 className="font-display text-2xl text-text-primary">

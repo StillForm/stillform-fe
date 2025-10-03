@@ -46,7 +46,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       children,
       ...props
     },
-    ref,
+    ref
   ) => {
     const Comp = asChild ? Slot : "button";
     const isDisabled = disabled || loading;
@@ -57,7 +57,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       variantStyles[variant],
       icon && "h-11 w-11 px-0",
       className,
-      asChild && isDisabled && "pointer-events-none opacity-70",
+      asChild && isDisabled && "pointer-events-none opacity-70"
     );
 
     const sharedProps: Record<string, unknown> = {
@@ -70,18 +70,26 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     if (asChild) {
       sharedProps["data-disabled"] = isDisabled ? "true" : undefined;
     } else {
-      (sharedProps as ButtonHTMLAttributes<HTMLButtonElement>).disabled = isDisabled;
+      (sharedProps as ButtonHTMLAttributes<HTMLButtonElement>).disabled =
+        isDisabled;
     }
 
     return (
       <Comp {...sharedProps}>
-        <span className={cn("flex items-center gap-2", loading && "opacity-0")}>{children}</span>
+        <span
+          className={cn(
+            "flex items-center gap-2 cursor-pointer",
+            loading && "opacity-0"
+          )}
+        >
+          {children}
+        </span>
         {loading ? (
           <span className="absolute inline-flex h-4 w-4 animate-spin rounded-full border-2 border-gold border-t-transparent" />
         ) : null}
       </Comp>
     );
-  },
+  }
 );
 
 Button.displayName = "Button";
