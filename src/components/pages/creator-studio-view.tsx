@@ -11,7 +11,7 @@ import { formatNumber } from "@/lib/utils";
 import { useAssetStore } from "@/lib/stores/assset-store";
 import { useMemo } from "react";
 import { useAccount } from "wagmi";
-import { AssetCard } from "../cards/asset-card";
+import { AssetCard } from "../cards/assetCard";
 
 export function CreatorStudioView() {
   const router = useRouter();

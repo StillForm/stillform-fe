@@ -3,7 +3,6 @@ import { parseAbi } from "viem";
 import { COLLECTION_FACTORY_ADDRESS } from "../config/addresses";
 import type { CreateCollectionParams } from "../types/contracts";
 
-// CollectionFactory ABI - 使用 parseAbi 来避免类型问题
 const COLLECTION_FACTORY_ABI = parseAbi([
   "function createCollection(string name, string symbol, (uint8 ptype, uint256 price, uint32 maxSupply, string unrevealedUri, address creator, address registry) config, (uint16 weightBp, uint32 maxSupply, uint32 minted, string baseUri)[] styles) returns (address collection)",
 ]);
@@ -37,30 +36,4 @@ export function useCreateCollection() {
     isConfirmed,
     error: error || confirmError,
   };
-}
-
-/**
- * 辅助函数：验证盲盒样式权重
- */
-export function validateBlindboxStyles(
-  styles: CreateCollectionParams["styles"]
-): boolean {
-  if (styles.length < 2) return false;
-
-  const totalWeight = styles.reduce((sum, style) => sum + style.weightBp, 0);
-  return totalWeight === 10000;
-}
-
-/**
- * 辅助函数：创建普通NFT的默认样式
- */
-export function createNormalStyle(baseUri: string, maxSupply: number) {
-  return [
-    {
-      weightBp: 10000,
-      maxSupply,
-      minted: 0,
-      baseUri,
-    },
-  ];
 }

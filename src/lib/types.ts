@@ -13,7 +13,7 @@ export interface Artist {
 export type SaleType = "fixed" | "auction" | "blind";
 
 export interface Asset {
-  id: string;
+  id: string; // 就是address
   title: string;
   edition: string;
   chain: Chain;

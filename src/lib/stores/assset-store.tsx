@@ -8,7 +8,7 @@ import { useRecentCollections } from "@/lib/contracts/common/events";
 import {
   CollectionDetails,
   useMultipleCollectionDetails,
-} from "@/lib/contracts/collection-factory/useCollectionDetails";
+} from "@/lib/services";
 
 interface AssetState {
   assets: Asset[];
@@ -55,14 +55,11 @@ export const AssetStoreProvider = ({
   const { activeWallet } = useWalletContext();
   // Select only the action to avoid re-rendering this provider when assets state changes
   const setAssets = useAssetStore((s) => s.setAssets);
-  const { collections } = useRecentCollections(1000);
 
+  // 获取最近的集合
+  const { collections } = useRecentCollections(1000);
   const collectionAddresses = useMemo<`0x${string}`[]>(() => {
-    if (
-      activeWallet?.source === "evm" &&
-      collections &&
-      collections.length > 0
-    ) {
+    if (activeWallet?.source === "evm" && collections?.length > 0) {
       return collections.map((c) => c.collection as `0x${string}`);
     }
     return [] as `0x${string}`[];
@@ -72,6 +69,7 @@ export const AssetStoreProvider = ({
     useMultipleCollectionDetails(collectionAddresses);
 
   const handleSetAssetsFromBlockchain = (detail: CollectionDetails) => {
+    console.log("block detail", detail);
     // 从 styles 中获取第一个 baseUri 作为图片
     const imageUrl =
       detail.styles.length > 0
@@ -107,13 +105,8 @@ export const AssetStoreProvider = ({
     };
   };
 
-  // Memoize the processed assets to prevent unnecessary recalculations
   const processedAssets = useMemo(() => {
-    if (
-      activeWallet?.source === "evm" &&
-      collectionDetails &&
-      collectionDetails.length > 0
-    ) {
+    if (activeWallet?.source === "evm" && collectionDetails?.length > 0) {
       return collectionDetails.map(handleSetAssetsFromBlockchain);
     }
     return [];

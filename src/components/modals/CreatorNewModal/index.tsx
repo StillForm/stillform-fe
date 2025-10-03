@@ -7,17 +7,17 @@ import {
   useTransactionLogs,
   ProductType,
   REGISTRY_ADDRESS,
-  createNormalStyle,
 } from "@/lib/contracts";
 import { useModalStore } from "@/lib/stores/modal-store";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { parseEther } from "viem";
 import { useAccount } from "wagmi";
 import { BaseModal } from "../base-modal";
 import { CreateCollectionForm, createCollectionSchema } from "./utils";
 import { useCreatorNewFormFields } from "./hooks";
+import { createNormalStyle } from "@/lib/contracts/collection-factory/utils";
 
 const CreatorNewModal = () => {
   const { closeModal } = useModalStore();

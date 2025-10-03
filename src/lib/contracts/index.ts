@@ -6,7 +6,6 @@ export * from "./config/addresses";
 
 // Collection Factory functions
 export * from "./collection-factory/createCollection";
-export * from "./collection-factory/useCollectionDetails";
 
 // Common utilities
 export * from "./common/events";

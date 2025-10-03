@@ -3,7 +3,7 @@
 import { useSearchParams, useRouter } from "next/navigation";
 import { Container } from "@/components/layout/container";
 import { Chip } from "@/components/ui/chip";
-import { AssetCard } from "@/components/cards/asset-card";
+import { AssetCard } from "@/components/cards/assetCard";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/states";
 import { useAssetStore } from "@/lib/stores/assset-store";

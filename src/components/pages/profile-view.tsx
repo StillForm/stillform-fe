@@ -3,29 +3,33 @@
 import Image from "next/image";
 import { Container } from "@/components/layout/container";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { AssetCard } from "@/components/cards/asset-card";
-import {
-  profileSummary,
-  profileAssets,
-  profileActivity,
-} from "@/data/mock-data";
+import { AssetCard } from "@/components/cards/assetCard";
+import { NFTCard } from "@/components/cards/nftCard";
+import { profileSummary, profileActivity } from "@/data/mock-data";
 import { truncateAddress } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { useAnalytics } from "@/lib/analytics";
 import { useAssetStore } from "@/lib/stores/assset-store";
 import { useMemo } from "react";
+import { useAccount } from "wagmi";
+import { useUserAssets } from "@/lib/services";
 
 export function ProfileView() {
   const { assets } = useAssetStore();
   const trackAssetClick = useAnalytics("profile_asset_click");
+  const { address } = useAccount();
 
-  const filteredAssets = useMemo(() => {
-    assets.filter((asset, index) => {
-      console.log("asset:", asset);
-      return null;
-    });
-  }, [assets]);
+  const createdAssets = useMemo(() => {
+    return assets.filter((asset) => asset.artist.id === address);
+  }, [assets, address]);
+
+  // 获取用户拥有的NFT资产
+  const { userNFTAssets, isLoading, error } = useUserAssets(
+    address,
+    assets.map((asset) => asset.id as `0x${string}`)
+  );
+
+  console.log("ownedAddress", userNFTAssets);
 
   return (
     <div className="pb-20">
@@ -78,32 +82,16 @@ export function ProfileView() {
           </div>
         </div>
 
-        <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-          {[
-            { label: "Collectibles", value: profileSummary.stats.collectibles },
-            { label: "Created", value: profileSummary.stats.created },
-            { label: "Redeemed", value: profileSummary.stats.redeemed },
-            { label: "Followers", value: profileSummary.stats.followers },
-            { label: "Following", value: profileSummary.stats.following },
-          ].map((stat) => (
-            <Card key={stat.label} className="space-y-2">
-              <p className="text-xs uppercase tracking-[0.25em] text-text-secondary/70">
-                {stat.label}
-              </p>
-              <p className="text-2xl text-text-primary">{stat.value}</p>
-            </Card>
-          ))}
-        </section>
-
+        {/* Created Assets */}
         <section className="space-y-6">
           <div className="flex items-center justify-between">
             <h2 className="font-display text-2xl text-text-primary">
-              Collected works
+              Created works
             </h2>
             <Button variant="tertiary">View all</Button>
           </div>
           <div className="grid gap-8 md:grid-cols-2 xl:grid-cols-3">
-            {profileAssets.map((asset) => (
+            {createdAssets.map((asset) => (
               <div
                 key={asset.id}
                 onClick={() => trackAssetClick({ asset_id: asset.id })}
@@ -111,6 +99,34 @@ export function ProfileView() {
                 <AssetCard asset={asset} />
               </div>
             ))}
+          </div>
+        </section>
+
+        {/* Collections */}
+        <section className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h2 className="font-display text-2xl text-text-primary">
+              Owned Collections
+            </h2>
+            <Button variant="tertiary">View all</Button>
+          </div>
+          <div className="grid gap-8 md:grid-cols-2 xl:grid-cols-3">
+            {isLoading ? (
+              <p>Loading owned collections...</p>
+            ) : error ? (
+              <p>Error loading owned collections: {error}</p>
+            ) : userNFTAssets.length > 0 ? (
+              userNFTAssets.map((nft) => (
+                <div
+                  key={nft.assetId}
+                  onClick={() => trackAssetClick({ asset_id: nft.assetId })}
+                >
+                  <NFTCard nft={nft} />
+                </div>
+              ))
+            ) : (
+              <p>No owned collections found.</p>
+            )}
           </div>
         </section>
 
