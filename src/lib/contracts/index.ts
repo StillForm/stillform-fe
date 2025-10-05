@@ -12,3 +12,7 @@ export * from "./common/events";
 
 // Primary Market functions
 export * from "./primary-market/purchase";
+
+// Art Product Collection - Physicalization functions
+export * from "./physicalization/requestPhysicalization";
+export * from "./physicalization/queryPhysicalization";

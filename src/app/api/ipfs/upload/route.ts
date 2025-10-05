@@ -6,17 +6,23 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
     const file = formData.get("file") as File;
 
+    console.log("Received file:", {
+      name: file?.name,
+      type: file?.type,
+      size: file?.size,
+    });
+
     if (!file) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
-    // Validate file type
-    if (!file.type.startsWith("image/")) {
-      return NextResponse.json(
-        { error: "File must be an image" },
-        { status: 400 }
-      );
-    }
+    // // Validate file type - accept both images and JSON
+    // if (!file.type.startsWith("image/") && file.type !== "application/json") {
+    //   return NextResponse.json(
+    //     { error: "File must be an image or JSON file" },
+    //     { status: 400 }
+    //   );
+    // }
 
     // Validate file size (max 10MB)
     if (file.size > 10 * 1024 * 1024) {
@@ -27,11 +33,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Upload to Pinata IPFS
-    const { cid, url } = await uploadToPinata(file);
+    const { url } = await uploadToPinata(file);
 
     return NextResponse.json({
       success: true,
-      // cid,
       url,
     });
   } catch (error) {

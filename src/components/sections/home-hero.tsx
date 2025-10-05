@@ -19,12 +19,15 @@ export function HomeHero() {
             Forge collectible realities that live on-chain and off-world.
           </h1>
           <p className="max-w-xl text-lg text-text-secondary">
-            Stillform lets artists mint limited editions, host high-fidelity auctions, and bundle
-            physical redemptions without leaving the studio workflow.
+            Kaiwu lets artists mint limited editions, host high-fidelity
+            auctions, and bundle physical redemptions without leaving the studio
+            workflow.
           </p>
           <div className="flex flex-wrap items-center gap-4">
             <Button onClick={() => router.push("/market")}>Explore Now</Button>
-            <Button variant="tertiary" onClick={() => router.push("/creator")}>Generate with AI</Button>
+            <Button variant="tertiary" onClick={() => router.push("/creator")}>
+              Generate with AI
+            </Button>
           </div>
 
           <dl className="grid gap-6 sm:grid-cols-3">
@@ -33,11 +36,16 @@ export function HomeHero() {
               { label: "Physical redemptions", value: "1.2K" },
               { label: "Chains supported", value: "3" },
             ].map((item) => (
-              <div key={item.label} className="rounded-[14px] border border-[rgba(38,39,43,0.75)] bg-[rgba(12,12,14,0.78)] px-5 py-4">
+              <div
+                key={item.label}
+                className="rounded-[14px] border border-[rgba(38,39,43,0.75)] bg-[rgba(12,12,14,0.78)] px-5 py-4"
+              >
                 <dt className="text-xs uppercase tracking-[0.25em] text-text-secondary/70">
                   {item.label}
                 </dt>
-                <dd className="mt-2 font-display text-2xl text-text-primary">{item.value}</dd>
+                <dd className="mt-2 font-display text-2xl text-text-primary">
+                  {item.value}
+                </dd>
               </div>
             ))}
           </dl>
@@ -49,7 +57,7 @@ export function HomeHero() {
             <div className="relative aspect-[4/5] w-full overflow-hidden rounded-[18px]">
               <Image
                 src="https://equal-brown-cougar.myfilebase.com/ipfs/QmaQgXPonpBwDqLsKjgGSbabNSZFNTZuGDPcGLcahKyki2"
-                alt="Stillform hero artwork"
+                alt="Kaiwu hero artwork"
                 fill
                 className="object-cover"
                 priority
@@ -58,9 +66,17 @@ export function HomeHero() {
             <div className="mt-6 flex items-center justify-between">
               <div>
                 <p className="text-sm text-text-secondary">Ethereal No.37</p>
-                <p className="text-base font-semibold text-text-primary">Aurora Nyx</p>
+                <p className="text-base font-semibold text-text-primary">
+                  Aurora Nyx
+                </p>
               </div>
-              <Button size="sm" variant="secondary" onClick={() => router.push("/product/drop-ethereal-37")}>View Drop</Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => router.push("/product/drop-ethereal-37")}
+              >
+                View Drop
+              </Button>
             </div>
           </div>
         </div>

@@ -11,6 +11,12 @@ import { Table, Thead, Tbody, Tr, Th, Td } from "@/components/ui/table";
 import type { Asset } from "@/lib/types";
 import { useModalStore } from "@/lib/stores/modal-store";
 import { truncateAddress } from "@/lib/utils";
+import { usePhysicalizationStatus } from "@/lib/contracts/physicalization/queryPhysicalization";
+import {
+  useMarkProcessing,
+  useCompletePhysicalization,
+} from "@/lib/contracts/physicalization/requestPhysicalization";
+import { PhysStatus } from "@/lib/contracts";
 
 const TAB_ITEMS = [
   { value: "about", label: "About" },
@@ -24,6 +30,12 @@ interface AssetDetailViewProps {
   ownerAddress: string;
   viewerOwns?: boolean;
   redeemable?: boolean;
+  // 新增属性：当前用户是否为创作者/卖家
+  isCreator?: boolean;
+  // 新增属性：合约地址
+  collectionAddress?: string;
+  // 新增属性：Token ID
+  tokenId?: bigint;
 }
 
 export function AssetDetailView({
@@ -31,9 +43,48 @@ export function AssetDetailView({
   ownerAddress,
   viewerOwns = true,
   redeemable = true,
+  isCreator = false,
+  collectionAddress,
+  tokenId,
 }: AssetDetailViewProps) {
   const [activeTab, setActiveTab] = useState("about");
   const { openModal } = useModalStore();
+
+  // 获取实体化状态
+  const { status, isLoading: isStatusLoading } = usePhysicalizationStatus(
+    collectionAddress as `0x${string}` | undefined,
+    tokenId
+  );
+
+  // 标记处理中状态
+  const { markProcessing, isPending: isMarkProcessingPending } =
+    useMarkProcessing(collectionAddress as `0x${string}`);
+
+  // 完成实体化
+  const { completePhysicalization, isPending: isCompletePending } =
+    useCompletePhysicalization(collectionAddress as `0x${string}`);
+
+  // 处理标记为处理中
+  const handleMarkProcessing = async () => {
+    if (!tokenId) return;
+    try {
+      await markProcessing(tokenId);
+    } catch (error) {
+      console.error("Failed to mark as processing:", error);
+    }
+  };
+
+  // 处理完成实体化
+  const handleCompletePhysicalization = async () => {
+    if (!tokenId) return;
+    try {
+      // 这里应该使用实际的最终URI
+      const finalUri = `https://example.com/physical/${tokenId}.json`;
+      await completePhysicalization(tokenId, finalUri);
+    } catch (error) {
+      console.error("Failed to complete physicalization:", error);
+    }
+  };
 
   return (
     <div className="pb-24">
@@ -55,6 +106,27 @@ export function AssetDetailView({
                 ? "Eligible for physical redemption"
                 : "Already redeemed"}
             </p>
+            {/* 显示实体化状态 */}
+            {collectionAddress && tokenId && (
+              <div className="mt-2 pt-2 border-t border-text-secondary/20">
+                <p className="font-semibold text-text-primary">
+                  Physicalization Status
+                </p>
+                <p>
+                  {isStatusLoading
+                    ? "Loading..."
+                    : status === PhysStatus.NOT_REQUESTED
+                    ? "Not requested"
+                    : status === PhysStatus.REQUESTED
+                    ? "Requested by owner"
+                    : status === PhysStatus.PROCESSING
+                    ? "Processing by creator"
+                    : status === PhysStatus.COMPLETED
+                    ? "Completed"
+                    : "Unknown"}
+                </p>
+              </div>
+            )}
           </Card>
         </div>
 
@@ -92,13 +164,46 @@ export function AssetDetailView({
           </div>
 
           <div className="flex flex-wrap gap-3">
-            {viewerOwns && redeemable ? (
+            {/* 买家操作 */}
+            {viewerOwns && redeemable && !isCreator && (
               <Button
                 onClick={() => openModal("redemption", { assetId: asset.id })}
               >
                 Request Redemption
               </Button>
-            ) : asset.saleType === "blind" ? (
+            )}
+
+            {/* 卖家操作 */}
+            {isCreator &&
+              collectionAddress &&
+              tokenId &&
+              status === PhysStatus.REQUESTED && (
+                <Button
+                  onClick={handleMarkProcessing}
+                  disabled={isMarkProcessingPending}
+                >
+                  {isMarkProcessingPending
+                    ? "Processing..."
+                    : "Mark as Processing"}
+                </Button>
+              )}
+
+            {isCreator &&
+              collectionAddress &&
+              tokenId &&
+              status === PhysStatus.PROCESSING && (
+                <Button
+                  onClick={handleCompletePhysicalization}
+                  disabled={isCompletePending}
+                >
+                  {isCompletePending
+                    ? "Completing..."
+                    : "Complete Physicalization"}
+                </Button>
+              )}
+
+            {/* 其他操作 */}
+            {asset.saleType === "blind" ? (
               <Button
                 onClick={() => openModal("blindBox", { assetId: asset.id })}
               >
@@ -110,13 +215,13 @@ export function AssetDetailView({
               >
                 Join Auction
               </Button>
-            ) : (
+            ) : !viewerOwns && !isCreator ? (
               <Button
                 onClick={() => openModal("walletPrompt", { assetId: asset.id })}
               >
                 Buy Now
               </Button>
-            )}
+            ) : null}
 
             <Button
               variant="secondary"

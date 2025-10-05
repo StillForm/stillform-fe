@@ -114,3 +114,5 @@
     *   一旦状态变为 `COMPLETED`，`locked(tokenId)` 函数将返回 `true`。
     *   合约覆写了 `_update` 函数，这是 ERC-721 中负责所有权转移的核心内部函数。当 `locked(tokenId)` 为 `true` 时，`_update` 会直接回滚交易，从而阻止任何形式的转移（`transfer`, `safeTransferFrom`, `approve` 等）。
     *   此时，该 NFT 已成为一个不可转让的灵魂绑定代币。
+
+TODO: 加一个发货中状态

@@ -14,10 +14,15 @@ export function CreatorCta() {
             Creator Studio: craft, mint, and pair physical redemption flows.
           </h2>
           <p className="text-lg text-text-secondary">
-            Manage drafts, configure multi-chain releases, and spin up AI reference boards without
-            leaving your workflow. Stillform writes provenance metadata and redemption logic for you.
+            Manage drafts, configure multi-chain releases, and spin up AI
+            reference boards without leaving your workflow. Kaiwu writes
+            provenance metadata and redemption logic for you.
           </p>
-          <Button size="lg" variant="secondary" className="w-fit" onClick={() => router.push("/creator")}
+          <Button
+            size="lg"
+            variant="secondary"
+            className="w-fit"
+            onClick={() => router.push("/creator")}
           >
             Enter Creator Studio
           </Button>
@@ -26,27 +31,35 @@ export function CreatorCta() {
           {[
             {
               title: "Dual minting",
-              description: "Mint on EVM, Solana, and Sui with unified metadata + store physical proofs.",
+              description:
+                "Mint on EVM, Solana, and Sui with unified metadata + store physical proofs.",
             },
             {
               title: "Redemption flows",
-              description: "Collectors request, track, and confirm shipments without leaving the asset page.",
+              description:
+                "Collectors request, track, and confirm shipments without leaving the asset page.",
             },
             {
               title: "AI companions",
-              description: "Generate lighting studies and promo frames seeded with collection DNA.",
+              description:
+                "Generate lighting studies and promo frames seeded with collection DNA.",
             },
             {
               title: "Analytics",
-              description: "Monitor bids, drops, and physical conversions in real time.",
+              description:
+                "Monitor bids, drops, and physical conversions in real time.",
             },
           ].map((item) => (
             <div
               key={item.title}
               className="rounded-[16px] border border-[rgba(38,39,43,0.75)] bg-[rgba(12,12,14,0.78)] p-5"
             >
-              <h3 className="text-lg font-semibold text-text-primary">{item.title}</h3>
-              <p className="mt-2 text-sm text-text-secondary">{item.description}</p>
+              <h3 className="text-lg font-semibold text-text-primary">
+                {item.title}
+              </h3>
+              <p className="mt-2 text-sm text-text-secondary">
+                {item.description}
+              </p>
             </div>
           ))}
         </div>

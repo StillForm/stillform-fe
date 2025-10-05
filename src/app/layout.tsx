@@ -3,9 +3,9 @@ import "./globals.css";
 import { Providers } from "@/components/layout/providers";
 
 export const metadata: Metadata = {
-  title: "Stillform",
+  title: "Kaiwu",
   description:
-    "Stillform is the creator studio and marketplace bridging physical art and on-chain collectibles.",
+    "Kaiwu is the creator studio and marketplace bridging physical art and on-chain collectibles.",
 };
 
 export default function RootLayout({

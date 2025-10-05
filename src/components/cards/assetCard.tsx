@@ -44,6 +44,10 @@ export function AssetCard({ asset, className }: AssetCardProps) {
     }
   };
 
+  console.log("AssetCard metadata debug:", {
+    asset,
+  });
+
   return (
     <Card interactive className={`flex flex-col overflow-hidden ${className}`}>
       <Link

@@ -18,6 +18,7 @@ import { BaseModal } from "../base-modal";
 import { CreateCollectionForm, createCollectionSchema } from "./utils";
 import { useCreatorNewFormFields } from "./hooks";
 import { createNormalStyle } from "@/lib/contracts/collection-factory/utils";
+import { uploadJsonToIPFS } from "@/lib/ipfs/client";
 
 const CreatorNewModal = () => {
   const { closeModal } = useModalStore();
@@ -62,8 +63,29 @@ const CreatorNewModal = () => {
     }
 
     try {
-      // 使用表单中的image字段作为baseUri
-      const imageUrl = data.image || "";
+      // 生成符合ERC-721标准的元数据JSON
+      const metadata = {
+        name: data.title,
+        description: data.description,
+        image: data.image || "",
+        attributes: [
+          {
+            trait_type: "Artist",
+            value: address.slice(0, 8) + "...",
+          },
+          {
+            trait_type: "Collection",
+            value: data.title,
+          },
+          {
+            trait_type: "Supply",
+            value: data.supply.toString(),
+          },
+        ],
+      };
+
+      // 上传元数据到IPFS（现在作为File对象上传）
+      const metadataUri = await uploadJsonToIPFS(metadata);
 
       const collectionParams = {
         name: data.title,
@@ -76,7 +98,7 @@ const CreatorNewModal = () => {
           creator: address,
           registry: REGISTRY_ADDRESS,
         },
-        styles: createNormalStyle(imageUrl, data.supply),
+        styles: createNormalStyle(metadataUri, data.supply), // 使用元数据URI
       };
 
       await createCollection(collectionParams);

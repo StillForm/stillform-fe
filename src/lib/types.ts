@@ -23,6 +23,7 @@ export interface Asset {
   endTime?: string;
   image: string;
   thumbnail?: string;
+  metadataUri?: string; // 元数据URI，用于获取真实的NFT信息
   artist: Artist;
   rarity?: "Common" | "Rare" | "Epic" | "Legendary";
   description?: string;

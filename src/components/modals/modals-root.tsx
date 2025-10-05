@@ -209,7 +209,7 @@ function WalletPromptModal({ asset }: { asset: Asset }) {
       open
       onClose={closeModal}
       title="Connect your wallet"
-      description="Connect any supported chain wallet to continue. Stillform does not store your private keys."
+      description="Connect any supported chain wallet to continue. Kaiwu does not store your private keys."
       footer={
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
           <Button
@@ -282,7 +282,7 @@ function RedemptionModal({ asset }: { asset: Asset }) {
             <Input
               id="email"
               type="email"
-              placeholder="creator@stillform.xyz"
+              placeholder="creator@Kaiwu.xyz"
               required
             />
           </div>
@@ -296,7 +296,7 @@ function RedemptionModal({ asset }: { asset: Asset }) {
           </div>
           <div>
             <Label htmlFor="address1">Address Line 1*</Label>
-            <Input id="address1" placeholder="231 Stillform Ave" required />
+            <Input id="address1" placeholder="231 Kaiwu Ave" required />
           </div>
           <div>
             <Label htmlFor="address2" optional>

@@ -86,7 +86,7 @@ export const trendingDrops: Asset[] = [
       "https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=1200&q=80",
     artist: featuredArtists[2],
     description:
-      "Limited blind capsule co-crafted with the Stillform guild, each reveal unlocks a companion physical shard.",
+      "Limited blind capsule co-crafted with the Kaiwu guild, each reveal unlocks a companion physical shard.",
     attributes: [
       { label: "Capsule", value: "Obsidian Bloom" },
       { label: "Rewards", value: "Physical shard" },
@@ -227,7 +227,7 @@ export const profileSummary: ProfileSummary = {
     "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1440&q=80",
   avatar:
     "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=200&q=80",
-  bio: "Stillform founding artist focusing on synesthetic lightforms bridging Solana and EVM editions.",
+  bio: "Kaiwu founding artist focusing on synesthetic lightforms bridging Solana and EVM editions.",
   stats: {
     collectibles: 124,
     created: 68,
@@ -305,7 +305,7 @@ export const assetDetails: Record<string, Asset> = Object.fromEntries(
         ...asset,
         description:
           asset.description ??
-          "A physical-digital paired collectible minted through the Stillform studio, complete with redemption rights.",
+          "A physical-digital paired collectible minted through the Kaiwu studio, complete with redemption rights.",
         attributes: asset.attributes ?? [
           { label: "Medium", value: "Crystal Alloy" },
           { label: "Year", value: "2025" },
@@ -320,7 +320,7 @@ export const assetDetails: Record<string, Asset> = Object.fromEntries(
           {
             tx: "0xb841...ebcd",
             date: new Date(createdAt + 1000 * 60 * 15).toISOString(),
-            owner: "Stillform Vault",
+            owner: "Kaiwu Vault",
           },
         ],
         activity: [
@@ -340,5 +340,5 @@ export const assetDetails: Record<string, Asset> = Object.fromEntries(
         ],
       },
     ];
-  }),
+  })
 );

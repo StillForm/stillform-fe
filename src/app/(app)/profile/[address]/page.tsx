@@ -1,5 +1,4 @@
 import { ProfileView } from "@/components/pages/profile-view";
-import { profileSummary } from "@/data/mock-data";
 import { notFound } from "next/navigation";
 
 interface ProfilePageProps {
@@ -7,12 +6,12 @@ interface ProfilePageProps {
 }
 
 export default async function ProfilePage({ params }: ProfilePageProps) {
-  const res = await params;
-  // if (address !== profileSummary.handle) {
-  //   notFound();
-  // }
+  const address = (await params).address;
+  if (!address) {
+    notFound();
+  }
 
-  console.log("res", res);
+  console.log("address", address);
 
-  return <ProfileView address={res.address} />;
+  return <ProfileView address={address} />;
 }

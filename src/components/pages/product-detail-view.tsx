@@ -184,7 +184,7 @@ export function ProductDetailView({
             </div>
             <div className="rounded-[16px] border border-[rgba(38,39,43,0.75)] bg-[rgba(12,12,14,0.78)] p-5 text-sm text-text-secondary">
               Physical redemption included for Epic tiers. Shipments originate
-              from Stillform Vault NYC.
+              from Kaiwu Vault NYC.
             </div>
           </div>
 
@@ -251,7 +251,7 @@ export function ProductDetailView({
               Artist Statement
             </h2>
             <p className="text-text-secondary">
-              This piece bridges Stillform&apos;s analog captured crystals with
+              This piece bridges Kaiwu&apos;s analog captured crystals with
               on-chain rarity logic. Each collector receives a companion
               archival print on redemption.
             </p>

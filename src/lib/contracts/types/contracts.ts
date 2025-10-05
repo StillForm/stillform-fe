@@ -8,7 +8,7 @@ export enum ProductType {
 
 // 实物化状态枚举
 export enum PhysStatus {
-  NONE = 0,
+  NOT_REQUESTED = 0,
   REQUESTED = 1,
   PROCESSING = 2,
   COMPLETED = 3,

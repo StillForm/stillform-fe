@@ -36,6 +36,43 @@ export async function uploadImageToIPFS(file: File): Promise<string> {
 }
 
 /**
+ * Upload JSON metadata to IPFS via our API endpoint
+ * Converts JSON data to a File object for upload
+ */
+export async function uploadJsonToIPFS(
+  jsonData: Record<string, unknown>
+): Promise<string> {
+  // 将JSON数据转换为Blob，然后包装成File对象
+  const jsonString = JSON.stringify(jsonData, null, 2);
+  const blob = new Blob([jsonString], { type: "application/json" });
+  const file = new File([blob], "metadata.json", { type: "application/json" });
+
+  console.log("Uploading JSON metadata:", {
+    fileName: file.name,
+    fileSize: file.size,
+    fileType: file.type,
+    jsonPreview: jsonString.substring(0, 200) + "...",
+  });
+
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await fetch("/api/ipfs/upload", {
+    method: "POST",
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const errorData: IPFSUploadError = await response.json();
+    throw new Error(errorData.error || "Failed to upload JSON metadata");
+  }
+
+  const data: IPFSUploadResponse = await response.json();
+  console.log("JSON metadata uploaded successfully:", data.url);
+  return data.url;
+}
+
+/**
  * Get the full IPFS URL for a given hash
  */
 export function getIPFSUrl(hash: string, gateway?: string): string {

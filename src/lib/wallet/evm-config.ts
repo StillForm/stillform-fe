@@ -64,7 +64,7 @@ export const wagmiConfig = createConfig({
   connectors: [
     metaMask({
       dappMetadata: {
-        name: "Stillform",
+        name: "Kaiwu",
       },
     }),
     injected({
@@ -80,7 +80,7 @@ export const wagmiConfig = createConfig({
       },
     }),
     coinbaseWallet({
-      appName: "Stillform",
+      appName: "Kaiwu",
       preference: {
         options: "all",
       },

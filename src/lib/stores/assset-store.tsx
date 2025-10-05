@@ -2,7 +2,7 @@
 
 import { create } from "zustand";
 import type { Asset } from "@/lib/types";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useWalletContext } from "@/lib/wallet/wallet-context";
 import { useRecentCollections } from "@/lib/contracts/common/events";
 import {
@@ -27,7 +27,9 @@ export const useAssetStore = create<AssetState>((set, get) => ({
         const prevHash = JSON.stringify(state.assets);
         const nextHash = JSON.stringify(assets);
         if (prevHash === nextHash) return state;
-      } catch (_) {}
+      } catch {
+        // Ignore JSON serialization errors
+      }
       return { assets };
     }),
 
@@ -55,6 +57,9 @@ export const AssetStoreProvider = ({
   const { activeWallet } = useWalletContext();
   // Select only the action to avoid re-rendering this provider when assets state changes
   const setAssets = useAssetStore((s) => s.setAssets);
+  const [metadataCache, setMetadataCache] = useState<
+    Record<string, { name?: string; image?: string }>
+  >({});
 
   // 获取最近的集合
   const { collections } = useRecentCollections(1000);
@@ -68,49 +73,98 @@ export const AssetStoreProvider = ({
   const { collectionDetails } =
     useMultipleCollectionDetails(collectionAddresses);
 
-  const handleSetAssetsFromBlockchain = (detail: CollectionDetails) => {
-    console.log("block detail", detail);
-    // 从 styles 中获取第一个 baseUri 作为图片
-    const imageUrl =
-      detail.styles.length > 0
-        ? detail.styles[0].baseUri
-        : `https://api.dicebear.com/7.x/shapes/svg?seed=${detail.address}`;
+  // 获取所有集合的元数据
+  useEffect(() => {
+    if (!collectionDetails || collectionDetails.length === 0) return;
 
-    // 格式化价格显示
-    const priceInEth = detail.config?.price
-      ? `${Number(detail.config.price) / 1e18} ETH`
-      : "0 ETH";
+    const fetchAllMetadata = async () => {
+      const newMetadataCache: Record<
+        string,
+        { name?: string; image?: string }
+      > = {};
 
-    return {
-      id: detail.address,
-      title: detail.name || `Collection ${detail.address.slice(0, 8)}...`,
-      edition: `Supply: ${detail.config?.maxSupply || 0}`,
-      chain: "EVM" as const,
-      saleType:
-        detail.config?.ptype === 1 ? ("blind" as const) : ("fixed" as const),
-      price: priceInEth,
-      image: imageUrl,
-      artist: {
-        id: detail.config?.creator || "",
-        name: `Creator ${detail.config?.creator?.slice(0, 8) || "Unknown"}...`,
-        avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${
-          detail.config?.creator || "default"
-        }`,
-        verified: false,
-      },
-      rarity: "Common" as const,
-      description: `Collection with ${Number(
-        detail.totalSupply || 0
-      )} items minted`,
+      await Promise.all(
+        collectionDetails.map(async (detail) => {
+          const metadataUri = detail.styles?.[0]?.baseUri;
+          if (!metadataUri) return;
+
+          try {
+            const response = await fetch(metadataUri);
+            if (response.ok) {
+              const metadata = await response.json();
+              newMetadataCache[detail.address] = {
+                name: metadata.name,
+                image: metadata.image,
+              };
+            }
+          } catch (error) {
+            console.error(
+              `Failed to fetch metadata for ${detail.address}:`,
+              error
+            );
+          }
+        })
+      );
+
+      setMetadataCache(newMetadataCache);
     };
-  };
+
+    fetchAllMetadata();
+  }, [collectionDetails]);
+
+  const handleSetAssetsFromBlockchain = useCallback(
+    (detail: CollectionDetails) => {
+      const fallbackImageUrl = `https://api.dicebear.com/7.x/shapes/svg?seed=${detail.address}`;
+      const metadataUri = detail.styles?.[0]?.baseUri || "";
+
+      // 从缓存中获取元数据
+      const cachedMetadata = metadataCache[detail.address];
+      const realImage = cachedMetadata?.image || fallbackImageUrl;
+      const realTitle =
+        cachedMetadata?.name ||
+        detail.name ||
+        `Collection ${detail.address.slice(0, 8)}...`;
+
+      // 格式化价格显示
+      const priceInEth = detail.config?.price
+        ? `${Number(detail.config.price) / 1e18} ETH`
+        : "0 ETH";
+
+      return {
+        id: detail.address,
+        title: realTitle,
+        edition: `Supply: ${detail.config?.maxSupply || 0}`,
+        chain: "EVM" as const,
+        saleType:
+          detail.config?.ptype === 1 ? ("blind" as const) : ("fixed" as const),
+        price: priceInEth,
+        image: realImage,
+        metadataUri,
+        artist: {
+          id: detail.config?.creator || "",
+          name: `Creator ${
+            detail.config?.creator?.slice(0, 8) || "Unknown"
+          }...`,
+          avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${
+            detail.config?.creator || "default"
+          }`,
+          verified: false,
+        },
+        rarity: "Common" as const,
+        description: `Collection with ${Number(
+          detail.totalSupply || 0
+        )} items minted`,
+      };
+    },
+    [metadataCache]
+  );
 
   const processedAssets = useMemo(() => {
     if (activeWallet?.source === "evm" && collectionDetails?.length > 0) {
       return collectionDetails.map(handleSetAssetsFromBlockchain);
     }
     return [];
-  }, [activeWallet?.source, collectionDetails]);
+  }, [activeWallet?.source, collectionDetails, handleSetAssetsFromBlockchain]);
 
   useEffect(() => {
     console.log("collectionDetails=", processedAssets);
@@ -121,7 +175,7 @@ export const AssetStoreProvider = ({
         assetsHashRef.current = nextHash;
       }
     }
-  }, [processedAssets]);
+  }, [processedAssets, setAssets]);
 
   return <>{children}</>;
 };

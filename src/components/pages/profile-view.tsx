@@ -12,7 +12,7 @@ import { useAnalytics } from "@/lib/analytics";
 import { useAssetStore } from "@/lib/stores/assset-store";
 import { useMemo } from "react";
 import { useUserAssets } from "@/lib/services";
-import { Twitter, Globe, MessageCircle, Instagram } from "lucide-react";
+import { Twitter, MessageCircle, Instagram } from "lucide-react";
 
 interface ProfileView {
   address: `0x${string}`;
@@ -39,7 +39,10 @@ export function ProfileView({ address }: ProfileView) {
     assets.map((asset) => asset.id as `0x${string}`)
   );
 
-  console.log("ownedAddress", userNFTAssets);
+  // 暂时使用原始的userNFTAssets，真实的tokenId获取需要在NFTCard组件内部处理
+  const realUserNFTAssets = userNFTAssets;
+
+  console.log("ownedAddress", realUserNFTAssets);
 
   return (
     <div className="pb-20">
@@ -130,8 +133,8 @@ export function ProfileView({ address }: ProfileView) {
               <p>Loading owned collections...</p>
             ) : error ? (
               <p>Error loading owned collections: {error}</p>
-            ) : userNFTAssets.length > 0 ? (
-              userNFTAssets.map((nft) => (
+            ) : realUserNFTAssets.length > 0 ? (
+              realUserNFTAssets.map((nft) => (
                 <div
                   key={nft.assetId}
                   onClick={() => trackAssetClick({ asset_id: nft.assetId })}
