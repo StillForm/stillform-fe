@@ -97,22 +97,6 @@ export function NFTCard({ nft, className }: NFTCardProps) {
     }
   };
 
-  // 获取状态标签变体
-  const getStatusVariant = () => {
-    switch (status) {
-      case PhysStatus.NOT_REQUESTED:
-        return "secondary" as const;
-      case PhysStatus.REQUESTED:
-        return "gold" as const;
-      case PhysStatus.PROCESSING:
-        return "gold" as const;
-      case PhysStatus.COMPLETED:
-        return "secondary" as const; // 如果没有success变体，使用secondary
-      default:
-        return "secondary" as const;
-    }
-  };
-
   // 检查是否应该显示状态标签
   const shouldShowStatusBadge = () => {
     return status !== PhysStatus.NOT_REQUESTED;
@@ -184,11 +168,16 @@ export function NFTCard({ nft, className }: NFTCardProps) {
             ) : (
               <Button
                 onClick={() =>
-                  openModal("redemption", { assetId: nft.assetId })
+                  openModal("orderStatus", {
+                    collectionAddress: collection.address,
+                    tokenId: realTokenId,
+                    owner: address,
+                    status: status,
+                  })
                 }
                 className="flex-1"
               >
-                View Details
+                View Order Status
               </Button>
             )}
           </div>

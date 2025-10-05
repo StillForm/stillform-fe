@@ -10,9 +10,27 @@ import { truncateAddress } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { useAnalytics } from "@/lib/analytics";
 import { useAssetStore } from "@/lib/stores/assset-store";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useUserAssets } from "@/lib/services";
-import { Twitter, MessageCircle, Instagram } from "lucide-react";
+import {
+  Twitter,
+  MessageCircle,
+  Instagram,
+  Clock,
+  Truck,
+  CheckCircle,
+  Package,
+} from "lucide-react";
+import {
+  useUserOrders,
+  useCreatorOrders,
+  useOrderManager,
+  PhysStatus,
+  type PhysicalizationOrder,
+} from "@/lib/contracts";
+import { useUserCollectionAddresses } from "@/lib/contracts/art-product-collection/queryCollection";
+import { Card } from "@/components/ui/card";
+import { useModalStore } from "@/lib/stores/modal-store";
 
 interface ProfileView {
   address: `0x${string}`;
@@ -21,6 +39,10 @@ interface ProfileView {
 export function ProfileView({ address }: ProfileView) {
   const { assets } = useAssetStore();
   const trackAssetClick = useAnalytics("profile_asset_click");
+  const { openModal } = useModalStore();
+  const [processingOrderId, setProcessingOrderId] = useState<string | null>(
+    null
+  );
 
   // 社交媒体图标配置
   const socialLinks = [
@@ -42,7 +64,184 @@ export function ProfileView({ address }: ProfileView) {
   // 暂时使用原始的userNFTAssets，真实的tokenId获取需要在NFTCard组件内部处理
   const realUserNFTAssets = userNFTAssets;
 
+  // 获取用户的所有集合地址（作为创作者）
+  const { collectionAddresses } = useUserCollectionAddresses(address);
+
+  // 获取用户申请的实体化订单（作为买家）
+  const { orders: userOrders, isLoading: isLoadingUserOrders } = useUserOrders(
+    address,
+    assets.map((asset) => asset.id as `0x${string}`)
+  );
+
+  // 获取需要处理的实体化订单（作为创作者）
+  const { orders: creatorOrders, isLoading: isLoadingCreatorOrders } =
+    useCreatorOrders(address, collectionAddresses);
+
+  // 工单管理
+  const { markProcessing, completeOrder, isPending, isConfirming } =
+    useOrderManager();
+
   console.log("ownedAddress", realUserNFTAssets);
+
+  // 获取状态文本
+  const getStatusText = (status: PhysStatus) => {
+    switch (status) {
+      case PhysStatus.REQUESTED:
+        return "Pending";
+      case PhysStatus.PROCESSING:
+        return "Processing";
+      case PhysStatus.COMPLETED:
+        return "Completed";
+      default:
+        return "Unknown";
+    }
+  };
+
+  // 获取状态图标
+  const getStatusIcon = (status: PhysStatus) => {
+    switch (status) {
+      case PhysStatus.REQUESTED:
+        return <Clock className="h-5 w-5" />;
+      case PhysStatus.PROCESSING:
+        return <Truck className="h-5 w-5" />;
+      case PhysStatus.COMPLETED:
+        return <CheckCircle className="h-5 w-5" />;
+      default:
+        return <Package className="h-5 w-5" />;
+    }
+  };
+
+  // 获取状态颜色
+  const getStatusColor = (status: PhysStatus) => {
+    switch (status) {
+      case PhysStatus.REQUESTED:
+        return "bg-yellow-500/20 text-yellow-500";
+      case PhysStatus.PROCESSING:
+        return "bg-blue-500/20 text-blue-500";
+      case PhysStatus.COMPLETED:
+        return "bg-green-500/20 text-green-500";
+      default:
+        return "bg-gray-500/20 text-gray-500";
+    }
+  };
+
+  // 处理标记为配送中
+  const handleMarkProcessing = async (order: PhysicalizationOrder) => {
+    const orderId = `${order.collectionAddress}-${order.tokenId}`;
+    setProcessingOrderId(orderId);
+    try {
+      await markProcessing(order.collectionAddress, order.tokenId);
+    } catch (error) {
+      console.error("Failed to mark processing:", error);
+    } finally {
+      setProcessingOrderId(null);
+    }
+  };
+
+  // 处理标记为已完成
+  const handleCompleteOrder = async (order: PhysicalizationOrder) => {
+    const orderId = `${order.collectionAddress}-${order.tokenId}`;
+    setProcessingOrderId(orderId);
+    try {
+      await completeOrder(order.collectionAddress, order.tokenId);
+    } catch (error) {
+      console.error("Failed to complete order:", error);
+    } finally {
+      setProcessingOrderId(null);
+    }
+  };
+
+  // 渲染订单卡片
+  const renderOrderCard = (order: PhysicalizationOrder, isCreator: boolean) => {
+    const orderId = `${order.collectionAddress}-${order.tokenId}`;
+    const isProcessingThis =
+      processingOrderId === orderId || isPending || isConfirming;
+
+    return (
+      <Card key={orderId} className="p-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            {/* Status Icon */}
+            <div className={`p-3 rounded-full ${getStatusColor(order.status)}`}>
+              {getStatusIcon(order.status)}
+            </div>
+
+            {/* Order Info */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-3">
+                <h3 className="font-display text-lg text-text-primary">
+                  Token #{order.tokenId.toString()}
+                </h3>
+                <Badge className={getStatusColor(order.status)}>
+                  {getStatusText(order.status)}
+                </Badge>
+              </div>
+              <div className="space-y-1 text-sm text-text-secondary">
+                <p>
+                  Collection:{" "}
+                  <span className="font-mono">
+                    {truncateAddress(order.collectionAddress, 6)}
+                  </span>
+                </p>
+                {isCreator && (
+                  <p>
+                    Owner:{" "}
+                    <span className="font-mono">
+                      {truncateAddress(order.owner, 6)}
+                    </span>
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex gap-3">
+            {isCreator ? (
+              <>
+                {order.status === PhysStatus.REQUESTED && (
+                  <Button
+                    onClick={() => handleMarkProcessing(order)}
+                    disabled={isProcessingThis}
+                    size="sm"
+                  >
+                    {isProcessingThis ? "Processing..." : "Mark as Processing"}
+                  </Button>
+                )}
+                {order.status === PhysStatus.PROCESSING && (
+                  <Button
+                    onClick={() => handleCompleteOrder(order)}
+                    disabled={isProcessingThis}
+                    size="sm"
+                  >
+                    {isProcessingThis ? "Completing..." : "Mark as Completed"}
+                  </Button>
+                )}
+                {order.status === PhysStatus.COMPLETED && (
+                  <Badge variant="gold">Delivered</Badge>
+                )}
+              </>
+            ) : (
+              <Button
+                onClick={() =>
+                  openModal("orderStatus", {
+                    collectionAddress: order.collectionAddress,
+                    tokenId: order.tokenId,
+                    owner: order.owner,
+                    status: order.status,
+                  })
+                }
+                size="sm"
+                variant="secondary"
+              >
+                View Status
+              </Button>
+            )}
+          </div>
+        </div>
+      </Card>
+    );
+  };
 
   return (
     <div className="pb-20">
@@ -147,6 +346,68 @@ export function ProfileView({ address }: ProfileView) {
             )}
           </div>
         </section>
+
+        {/* My Physicalization Orders (用户视角) */}
+        <section className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h2 className="font-display text-2xl text-text-primary">
+              My Physicalization Orders
+            </h2>
+            <Badge variant="gold">{userOrders.length} Orders</Badge>
+          </div>
+          {isLoadingUserOrders ? (
+            <p className="text-text-secondary">Loading your orders...</p>
+          ) : userOrders.length > 0 ? (
+            <div className="space-y-4">
+              {userOrders.map((order) => renderOrderCard(order, false))}
+            </div>
+          ) : (
+            <div className="text-center py-12 bg-[rgba(12,12,14,0.78)] rounded-[16px] border border-[rgba(38,39,43,0.75)]">
+              <Package className="h-12 w-12 mx-auto text-text-secondary/30 mb-3" />
+              <p className="text-text-secondary">
+                You haven&apos;t requested any physicalization yet.
+              </p>
+            </div>
+          )}
+        </section>
+
+        {/* Orders to Process (创作者视角) */}
+        {creatorOrders.length > 0 && (
+          <section className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="font-display text-2xl text-text-primary">
+                Orders to Process
+              </h2>
+              <div className="flex gap-2">
+                <Badge className="bg-yellow-500/20 text-yellow-500">
+                  {
+                    creatorOrders.filter(
+                      (o) => o.status === PhysStatus.REQUESTED
+                    ).length
+                  }{" "}
+                  Pending
+                </Badge>
+                <Badge className="bg-blue-500/20 text-blue-500">
+                  {
+                    creatorOrders.filter(
+                      (o) => o.status === PhysStatus.PROCESSING
+                    ).length
+                  }{" "}
+                  Processing
+                </Badge>
+              </div>
+            </div>
+            {isLoadingCreatorOrders ? (
+              <p className="text-text-secondary">
+                Loading orders to process...
+              </p>
+            ) : (
+              <div className="space-y-4">
+                {creatorOrders.map((order) => renderOrderCard(order, true))}
+              </div>
+            )}
+          </section>
+        )}
 
         <section className="space-y-4">
           <h2 className="font-display text-2xl text-text-primary">Activity</h2>

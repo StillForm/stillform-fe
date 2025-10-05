@@ -9,7 +9,8 @@ type ModalType =
   | "creatorDraft"
   | "creatorNew"
   | "aiPreset"
-  | "walletPrompt";
+  | "walletPrompt"
+  | "orderStatus";
 
 interface ModalPayload {
   [key: string]: unknown;

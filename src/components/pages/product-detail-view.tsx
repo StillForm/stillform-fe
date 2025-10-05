@@ -117,16 +117,7 @@ export function ProductDetailView({
         onClick={async () => {
           try {
             const priceStr = (viewAsset.price || "").toString().trim();
-            // Expect formats like "0.05 ETH" -> take the first token as ETH amount
             const priceEth = priceStr.split(/\s+/)[0] || "0";
-
-            // const ok =
-            //   typeof window !== "undefined"
-            //     ? window.confirm(
-            //         `Confirm purchase?\n\nCollection: ${viewAsset.id}\nPrice: ${priceEth} ETH`
-            //       )
-            //     : true;
-            // if (!ok) return;
 
             trackAction({ type: "buy", id: viewAsset.id });
             await purchaseEth(viewAsset.id as `0x${string}`, priceEth);

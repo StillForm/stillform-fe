@@ -84,8 +84,11 @@ const CreatorNewModal = () => {
         ],
       };
 
+      console.log("Creating NFT with metadata:", metadata);
+
       // 上传元数据到IPFS（现在作为File对象上传）
       const metadataUri = await uploadJsonToIPFS(metadata);
+      console.log("Metadata uploaded to:", metadataUri);
 
       const collectionParams = {
         name: data.title,

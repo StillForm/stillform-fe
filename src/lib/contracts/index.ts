@@ -16,3 +16,10 @@ export * from "./primary-market/purchase";
 // Art Product Collection - Physicalization functions
 export * from "./physicalization/requestPhysicalization";
 export * from "./physicalization/queryPhysicalization";
+
+// Art Product Collection - Query functions
+export * from "./art-product-collection/queryCollection";
+
+// Order Management functions
+export * from "./orders/queryOrders";
+export * from "./orders/manageOrders";

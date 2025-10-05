@@ -18,6 +18,9 @@ import { Textarea } from "@/components/ui/textarea";
 import type { Asset } from "@/lib/types";
 import { logEvent } from "@/lib/analytics";
 import CreatorNewModal from "./CreatorNewModal";
+import { OrderStatusModal } from "./OrderStatusModal";
+import type { Address } from "viem";
+import { PhysStatus } from "@/lib/contracts";
 
 function AuctionModal({ asset }: { asset: Asset }) {
   const { closeModal } = useModalStore();
@@ -524,6 +527,15 @@ export function ModalsRoot() {
     case "aiPreset":
       return (
         <AiPresetModal source={modal.payload?.source as string | undefined} />
+      );
+    case "orderStatus":
+      return (
+        <OrderStatusModal
+          collectionAddress={modal.payload?.collectionAddress as Address}
+          tokenId={modal.payload?.tokenId as bigint}
+          owner={modal.payload?.owner as Address}
+          status={modal.payload?.status as PhysStatus}
+        />
       );
     default:
       return null;
