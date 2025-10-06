@@ -1,11 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo } from "react";
+import Image from "next/image";
+import { useMemo, useState } from "react";
 import { Clock, Sparkles } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useModalStore } from "@/lib/stores/modal-store";
 import type { Asset } from "@/lib/types";
 import { logEvent } from "@/lib/analytics";
@@ -24,6 +26,10 @@ interface AssetCardProps {
 
 export function AssetCard({ asset, className }: AssetCardProps) {
   const { openModal } = useModalStore();
+  const [isImageLoading, setIsImageLoading] = useState(true);
+
+  // Fallback 图片，基于 asset ID 生成
+  const fallbackImageUrl = `https://api.dicebear.com/7.x/shapes/svg?seed=${asset.id}`;
 
   const actionLabel = saleTypeCopy[asset.saleType];
   const timeRemaining = useMemo(
@@ -55,10 +61,19 @@ export function AssetCard({ asset, className }: AssetCardProps) {
         className="relative block overflow-hidden rounded-[12px]"
       >
         <div className="relative aspect-[4/5] w-full">
-          <img
+          {isImageLoading && <Skeleton className="h-full w-full" />}
+          <Image
             src={asset.image}
             alt={asset.title}
+            fill
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             className="object-cover transition duration-500 group-hover:scale-105"
+            onLoadingComplete={() => setIsImageLoading(false)}
+            onError={(e) => {
+              // 如果图片加载失败，使用fallback图片
+              e.currentTarget.src = fallbackImageUrl;
+              setIsImageLoading(false);
+            }}
           />
         </div>
         <div className="absolute left-4 top-4 flex items-center gap-2">
@@ -80,13 +95,24 @@ export function AssetCard({ asset, className }: AssetCardProps) {
             <span>•</span>
             <span>{asset.edition}</span>
           </div>
-          <Link
-            href={`/product/${asset.id}`}
-            className="font-display text-xl text-text-primary"
-          >
-            {asset.title}
-          </Link>
-          <p className="text-sm text-text-secondary">By {asset.artist.name}</p>
+          {isImageLoading ? (
+            <>
+              <Skeleton className="h-7 w-3/4" />
+              <Skeleton className="h-5 w-1/2" />
+            </>
+          ) : (
+            <>
+              <Link
+                href={`/product/${asset.id}`}
+                className="font-display text-xl text-text-primary"
+              >
+                {asset.title}
+              </Link>
+              <p className="text-sm text-text-secondary">
+                By {asset.artist.name}
+              </p>
+            </>
+          )}
         </div>
 
         <div className="mt-auto space-y-3">

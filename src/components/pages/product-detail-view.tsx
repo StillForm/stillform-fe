@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Table, Thead, Tbody, Tr, Th, Td } from "@/components/ui/table";
 import { useModalStore } from "@/lib/stores/modal-store";
 import { useAssetStore } from "@/lib/stores/assset-store";
@@ -33,6 +34,7 @@ export function ProductDetailView({
 }: ProductDetailViewProps) {
   const { openModal } = useModalStore();
   const [activeTab, setActiveTab] = useState("about");
+  const [isImageLoading, setIsImageLoading] = useState(true);
   const trackAction = useAnalytics("product_action");
   const pathname = usePathname();
   const assets = useAssetStore((s) => s.assets);
@@ -69,6 +71,16 @@ export function ProductDetailView({
       (a) => a.id.toLowerCase() === resolvedAssetId.toLowerCase()
     );
   }, [asset, resolvedAssetId, assets]);
+
+  // Fallback 图片
+  const fallbackImageUrl = viewAsset
+    ? `https://api.dicebear.com/7.x/shapes/svg?seed=${viewAsset.id}`
+    : "";
+
+  // 当 asset 改变时重置图片加载状态
+  useEffect(() => {
+    setIsImageLoading(true);
+  }, [viewAsset?.id]);
 
   // Render primary action(s) using the resolved asset id
   const renderActions = () => {
@@ -166,11 +178,22 @@ export function ProductDetailView({
       <div className="border-b border-[rgba(38,39,43,0.75)] bg-[rgba(18,18,21,0.85)]">
         <Container className="grid gap-16 py-16 lg:grid-cols-[1.1fr_0.9fr]">
           <div className="space-y-6">
-            <div className="relative overflow-hidden rounded-[20px] border border-[rgba(207,175,109,0.25)]">
-              <img
+            <div className="relative overflow-hidden rounded-[20px] border border-[rgba(207,175,109,0.25)] aspect-[4/5]">
+              {isImageLoading && (
+                <Skeleton className="absolute inset-0 h-full w-full" />
+              )}
+              <Image
                 src={viewAsset.image}
                 alt={viewAsset.title}
-                className="h-full w-full object-cover"
+                fill
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 60vw, 50vw"
+                className="object-cover"
+                onLoadingComplete={() => setIsImageLoading(false)}
+                onError={(e) => {
+                  // 如果图片加载失败，使用fallback图片
+                  e.currentTarget.src = fallbackImageUrl;
+                  setIsImageLoading(false);
+                }}
               />
             </div>
             <div className="rounded-[16px] border border-[rgba(38,39,43,0.75)] bg-[rgba(12,12,14,0.78)] p-5 text-sm text-text-secondary">

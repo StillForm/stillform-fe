@@ -2,9 +2,11 @@
 
 import React from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import type { CollectionDetails } from "@/lib/services";
 import { usePhysicalizationStatus } from "@/lib/contracts/physicalization/queryPhysicalization";
 import { useRequestPhysicalization } from "@/lib/contracts/physicalization/requestPhysicalization";
@@ -41,8 +43,6 @@ export function NFTCard({ nft, className }: NFTCardProps) {
     realTokenId: realTokenId.toString(),
   });
 
-  // 直接使用AssetStore中的数据，不额外查询metadata
-  // AssetStore已经在加载时获取了所有collection的metadata
   const fallbackImageUrl = `https://api.dicebear.com/7.x/shapes/svg?seed=${collection.address}`;
 
   // 从collection的styles中获取baseUri，然后fetch metadata
@@ -51,10 +51,16 @@ export function NFTCard({ nft, className }: NFTCardProps) {
     name?: string;
     image?: string;
   } | null>(null);
+  const [isLoadingMetadata, setIsLoadingMetadata] = React.useState(true);
+  const [isImageLoading, setIsImageLoading] = React.useState(true);
 
   React.useEffect(() => {
-    if (!metadataUri) return;
+    if (!metadataUri) {
+      setIsLoadingMetadata(false);
+      return;
+    }
 
+    setIsLoadingMetadata(true);
     fetch(metadataUri)
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
@@ -65,6 +71,9 @@ export function NFTCard({ nft, className }: NFTCardProps) {
       })
       .catch((err) => {
         console.error("Failed to load metadata:", err);
+      })
+      .finally(() => {
+        setIsLoadingMetadata(false);
       });
   }, [metadataUri]);
 
@@ -126,13 +135,20 @@ export function NFTCard({ nft, className }: NFTCardProps) {
         className="relative block overflow-hidden rounded-[12px]"
       >
         <div className="relative aspect-[4/5] w-full">
-          <img
+          {(isLoadingMetadata || isImageLoading) && (
+            <Skeleton className="h-full w-full" />
+          )}
+          <Image
             src={imageUrl}
             alt={displayName}
+            fill
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             className="object-cover transition duration-500 group-hover:scale-105"
+            onLoadingComplete={() => setIsImageLoading(false)}
             onError={(e) => {
               // 如果图片加载失败，使用fallback图片
               e.currentTarget.src = fallbackImageUrl;
+              setIsImageLoading(false);
             }}
           />
         </div>
@@ -149,16 +165,26 @@ export function NFTCard({ nft, className }: NFTCardProps) {
             <span>•</span>
             <span>Token ID: {realTokenId.toString()}</span>
           </div>
-          <Link
-            href={`/asset/${collection.address}/${realTokenId}`}
-            className="font-display text-xl text-text-primary"
-          >
-            {displayName || `Collection ${collection.address.slice(0, 8)}...`} #
-            {realTokenId.toString()}
-          </Link>
-          <p className="text-sm text-text-secondary">
-            By {collection.config.creator?.slice(0, 8) || "Unknown"}...
-          </p>
+          {isLoadingMetadata || isImageLoading ? (
+            <>
+              <Skeleton className="h-7 w-3/4" />
+              <Skeleton className="h-5 w-1/2" />
+            </>
+          ) : (
+            <>
+              <Link
+                href={`/asset/${collection.address}/${realTokenId}`}
+                className="font-display text-xl text-text-primary"
+              >
+                {displayName ||
+                  `Collection ${collection.address.slice(0, 8)}...`}{" "}
+                #{realTokenId.toString()}
+              </Link>
+              <p className="text-sm text-text-secondary">
+                By {collection.config.creator?.slice(0, 8) || "Unknown"}...
+              </p>
+            </>
+          )}
         </div>
 
         <div className="mt-auto space-y-3">
