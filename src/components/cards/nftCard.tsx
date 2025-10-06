@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -7,10 +8,7 @@ import { Button } from "@/components/ui/button";
 import type { CollectionDetails } from "@/lib/services";
 import { usePhysicalizationStatus } from "@/lib/contracts/physicalization/queryPhysicalization";
 import { useRequestPhysicalization } from "@/lib/contracts/physicalization/requestPhysicalization";
-import {
-  useNFTMetadata,
-  useUserTokenIds,
-} from "@/lib/contracts/art-product-collection/queryCollection";
+import { useUserTokenIds } from "@/lib/contracts/art-product-collection/queryCollection";
 import { useModalStore } from "@/lib/stores/modal-store";
 import { PhysStatus } from "@/lib/contracts";
 import { useAccount } from "wagmi";
@@ -33,26 +31,45 @@ export function NFTCard({ nft, className }: NFTCardProps) {
   // 获取用户在该集合中的真实tokenId
   const { tokenIds } = useUserTokenIds(collection.address, address);
 
-  // 使用真实的tokenId，如果没有则使用传入的tokenId
+  // 使用真实的tokenId（取第一个，因为用户可能拥有多个）
   const realTokenId = tokenIds.length > 0 ? tokenIds[0] : nft.tokenId;
 
-  // 获取NFT元数据
-  const { metadata, isLoading: isMetadataLoading } = useNFTMetadata(
-    collection.address,
-    realTokenId
-  );
-
-  console.log("NFTCard metadata debug:", {
+  console.log("NFTCard tokenIds debug:", {
     collectionAddress: collection.address,
+    userAddress: address,
+    tokenIds: tokenIds.map((id) => id.toString()),
     realTokenId: realTokenId.toString(),
-    metadata,
-    isLoading: isMetadataLoading,
   });
 
+  // 直接使用AssetStore中的数据，不额外查询metadata
+  // AssetStore已经在加载时获取了所有collection的metadata
+  const fallbackImageUrl = `https://api.dicebear.com/7.x/shapes/svg?seed=${collection.address}`;
+
+  // 从collection的styles中获取baseUri，然后fetch metadata
+  const metadataUri = collection.styles?.[0]?.baseUri;
+  const [metadata, setMetadata] = React.useState<{
+    name?: string;
+    image?: string;
+  } | null>(null);
+
+  React.useEffect(() => {
+    if (!metadataUri) return;
+
+    fetch(metadataUri)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data) {
+          console.log("NFTCard loaded metadata:", data);
+          setMetadata(data);
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to load metadata:", err);
+      });
+  }, [metadataUri]);
+
   // 使用元数据中的图片，如果没有则使用fallback
-  const imageUrl =
-    metadata?.image ||
-    `https://api.dicebear.com/7.x/shapes/svg?seed=${collection.address}`;
+  const imageUrl = metadata?.image || fallbackImageUrl;
 
   // 使用元数据中的名称，如果没有则使用集合名称
   const displayName = metadata?.name || collection.name;
@@ -115,14 +132,9 @@ export function NFTCard({ nft, className }: NFTCardProps) {
             className="object-cover transition duration-500 group-hover:scale-105"
             onError={(e) => {
               // 如果图片加载失败，使用fallback图片
-              e.currentTarget.src = `https://api.dicebear.com/7.x/shapes/svg?seed=${collection.address}`;
+              e.currentTarget.src = fallbackImageUrl;
             }}
           />
-          {isMetadataLoading && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black/50">
-              <div className="text-white text-sm">Loading metadata...</div>
-            </div>
-          )}
         </div>
         <div className="absolute left-4 top-4 flex items-center gap-2">
           <Badge variant="gold">Owned</Badge>

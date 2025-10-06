@@ -10,7 +10,7 @@ import { truncateAddress } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { useAnalytics } from "@/lib/analytics";
 import { useAssetStore } from "@/lib/stores/assset-store";
-import { useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useUserAssets } from "@/lib/services";
 import {
   Twitter,
@@ -21,16 +21,12 @@ import {
   CheckCircle,
   Package,
 } from "lucide-react";
-import {
-  useUserOrders,
-  useCreatorOrders,
-  useOrderManager,
-  PhysStatus,
-  type PhysicalizationOrder,
-} from "@/lib/contracts";
+import { useOrderManager, PhysStatus } from "@/lib/contracts";
 import { useUserCollectionAddresses } from "@/lib/contracts/art-product-collection/queryCollection";
+import { usePhysicalizationStatus } from "@/lib/contracts/physicalization/queryPhysicalization";
 import { Card } from "@/components/ui/card";
 import { useModalStore } from "@/lib/stores/modal-store";
+import type { Address } from "viem";
 
 interface ProfileView {
   address: `0x${string}`;
@@ -67,21 +63,14 @@ export function ProfileView({ address }: ProfileView) {
   // 获取用户的所有集合地址（作为创作者）
   const { collectionAddresses } = useUserCollectionAddresses(address);
 
-  // 获取用户申请的实体化订单（作为买家）
-  const { orders: userOrders, isLoading: isLoadingUserOrders } = useUserOrders(
-    address,
-    assets.map((asset) => asset.id as `0x${string}`)
-  );
-
-  // 获取需要处理的实体化订单（作为创作者）
-  const { orders: creatorOrders, isLoading: isLoadingCreatorOrders } =
-    useCreatorOrders(address, collectionAddresses);
-
   // 工单管理
   const { markProcessing, completeOrder, isPending, isConfirming } =
     useOrderManager();
 
   console.log("ownedAddress", realUserNFTAssets);
+
+  // 从userNFTAssets中筛选出有实体化申请的NFT作为订单
+  // 这个在下面的OrderCard组件中处理
 
   // 获取状态文本
   const getStatusText = (status: PhysStatus) => {
@@ -126,11 +115,14 @@ export function ProfileView({ address }: ProfileView) {
   };
 
   // 处理标记为配送中
-  const handleMarkProcessing = async (order: PhysicalizationOrder) => {
-    const orderId = `${order.collectionAddress}-${order.tokenId}`;
+  const handleMarkProcessing = async (orderInfo: {
+    collectionAddress: Address;
+    tokenId: bigint;
+  }) => {
+    const orderId = `${orderInfo.collectionAddress}-${orderInfo.tokenId}`;
     setProcessingOrderId(orderId);
     try {
-      await markProcessing(order.collectionAddress, order.tokenId);
+      await markProcessing(orderInfo.collectionAddress, orderInfo.tokenId);
     } catch (error) {
       console.error("Failed to mark processing:", error);
     } finally {
@@ -139,11 +131,14 @@ export function ProfileView({ address }: ProfileView) {
   };
 
   // 处理标记为已完成
-  const handleCompleteOrder = async (order: PhysicalizationOrder) => {
-    const orderId = `${order.collectionAddress}-${order.tokenId}`;
+  const handleCompleteOrder = async (orderInfo: {
+    collectionAddress: Address;
+    tokenId: bigint;
+  }) => {
+    const orderId = `${orderInfo.collectionAddress}-${orderInfo.tokenId}`;
     setProcessingOrderId(orderId);
     try {
-      await completeOrder(order.collectionAddress, order.tokenId);
+      await completeOrder(orderInfo.collectionAddress, orderInfo.tokenId);
     } catch (error) {
       console.error("Failed to complete order:", error);
     } finally {
@@ -151,46 +146,60 @@ export function ProfileView({ address }: ProfileView) {
     }
   };
 
-  // 渲染订单卡片
-  const renderOrderCard = (order: PhysicalizationOrder, isCreator: boolean) => {
-    const orderId = `${order.collectionAddress}-${order.tokenId}`;
+  // 简单的OrderCard组件 - 接收NFT信息，内部查询实体化状态
+  const OrderCard = React.memo(function OrderCard({
+    collectionAddress,
+    tokenId,
+    isCreator,
+  }: {
+    collectionAddress: Address;
+    tokenId: bigint;
+    isCreator: boolean;
+  }) {
+    const { status, isLoading } = usePhysicalizationStatus(
+      collectionAddress,
+      tokenId
+    );
+
+    // 加载中或没有申请实体化，不显示
+    if (isLoading || status === PhysStatus.NOT_REQUESTED) return null;
+
+    const orderId = `${collectionAddress}-${tokenId}`;
     const isProcessingThis =
       processingOrderId === orderId || isPending || isConfirming;
+    const isSelf = true; // 在个人页面，都是自己的
 
     return (
       <Card key={orderId} className="p-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             {/* Status Icon */}
-            <div className={`p-3 rounded-full ${getStatusColor(order.status)}`}>
-              {getStatusIcon(order.status)}
+            <div className={`p-3 rounded-full ${getStatusColor(status)}`}>
+              {getStatusIcon(status)}
             </div>
 
             {/* Order Info */}
             <div className="space-y-2">
               <div className="flex items-center gap-3">
                 <h3 className="font-display text-lg text-text-primary">
-                  Token #{order.tokenId.toString()}
+                  Token #{tokenId.toString()}
                 </h3>
-                <Badge className={getStatusColor(order.status)}>
-                  {getStatusText(order.status)}
+                <Badge className={getStatusColor(status)}>
+                  {getStatusText(status)}
                 </Badge>
+                {isSelf && isCreator && (
+                  <Badge className="text-xs bg-gray-500/20 text-gray-400">
+                    Self Order
+                  </Badge>
+                )}
               </div>
               <div className="space-y-1 text-sm text-text-secondary">
                 <p>
                   Collection:{" "}
                   <span className="font-mono">
-                    {truncateAddress(order.collectionAddress, 6)}
+                    {truncateAddress(collectionAddress, 6)}
                   </span>
                 </p>
-                {isCreator && (
-                  <p>
-                    Owner:{" "}
-                    <span className="font-mono">
-                      {truncateAddress(order.owner, 6)}
-                    </span>
-                  </p>
-                )}
               </div>
             </div>
           </div>
@@ -199,25 +208,29 @@ export function ProfileView({ address }: ProfileView) {
           <div className="flex gap-3">
             {isCreator ? (
               <>
-                {order.status === PhysStatus.REQUESTED && (
+                {status === PhysStatus.REQUESTED && (
                   <Button
-                    onClick={() => handleMarkProcessing(order)}
+                    onClick={() =>
+                      handleMarkProcessing({ collectionAddress, tokenId })
+                    }
                     disabled={isProcessingThis}
                     size="sm"
                   >
                     {isProcessingThis ? "Processing..." : "Mark as Processing"}
                   </Button>
                 )}
-                {order.status === PhysStatus.PROCESSING && (
+                {status === PhysStatus.PROCESSING && (
                   <Button
-                    onClick={() => handleCompleteOrder(order)}
+                    onClick={() =>
+                      handleCompleteOrder({ collectionAddress, tokenId })
+                    }
                     disabled={isProcessingThis}
                     size="sm"
                   >
                     {isProcessingThis ? "Completing..." : "Mark as Completed"}
                   </Button>
                 )}
-                {order.status === PhysStatus.COMPLETED && (
+                {status === PhysStatus.COMPLETED && (
                   <Badge variant="gold">Delivered</Badge>
                 )}
               </>
@@ -225,10 +238,10 @@ export function ProfileView({ address }: ProfileView) {
               <Button
                 onClick={() =>
                   openModal("orderStatus", {
-                    collectionAddress: order.collectionAddress,
-                    tokenId: order.tokenId,
-                    owner: order.owner,
-                    status: order.status,
+                    collectionAddress,
+                    tokenId,
+                    owner: address,
+                    status,
                   })
                 }
                 size="sm"
@@ -241,7 +254,7 @@ export function ProfileView({ address }: ProfileView) {
         </div>
       </Card>
     );
-  };
+  });
 
   return (
     <div className="pb-20">
@@ -353,13 +366,19 @@ export function ProfileView({ address }: ProfileView) {
             <h2 className="font-display text-2xl text-text-primary">
               My Physicalization Orders
             </h2>
-            <Badge variant="gold">{userOrders.length} Orders</Badge>
           </div>
-          {isLoadingUserOrders ? (
+          {isLoading ? (
             <p className="text-text-secondary">Loading your orders...</p>
-          ) : userOrders.length > 0 ? (
+          ) : realUserNFTAssets.length > 0 ? (
             <div className="space-y-4">
-              {userOrders.map((order) => renderOrderCard(order, false))}
+              {realUserNFTAssets.map((nft) => (
+                <OrderCard
+                  key={`${nft.collection.address}-${nft.tokenId}`}
+                  collectionAddress={nft.collection.address}
+                  tokenId={nft.tokenId}
+                  isCreator={false}
+                />
+              ))}
             </div>
           ) : (
             <div className="text-center py-12 bg-[rgba(12,12,14,0.78)] rounded-[16px] border border-[rgba(38,39,43,0.75)]">
@@ -372,38 +391,41 @@ export function ProfileView({ address }: ProfileView) {
         </section>
 
         {/* Orders to Process (创作者视角) */}
-        {creatorOrders.length > 0 && (
+        {collectionAddresses.length > 0 && (
           <section className="space-y-6">
             <div className="flex items-center justify-between">
               <h2 className="font-display text-2xl text-text-primary">
                 Orders to Process
+                <span className="text-sm font-normal text-text-secondary ml-2">
+                  (Creator View)
+                </span>
               </h2>
-              <div className="flex gap-2">
-                <Badge className="bg-yellow-500/20 text-yellow-500">
-                  {
-                    creatorOrders.filter(
-                      (o) => o.status === PhysStatus.REQUESTED
-                    ).length
-                  }{" "}
-                  Pending
-                </Badge>
-                <Badge className="bg-blue-500/20 text-blue-500">
-                  {
-                    creatorOrders.filter(
-                      (o) => o.status === PhysStatus.PROCESSING
-                    ).length
-                  }{" "}
-                  Processing
-                </Badge>
-              </div>
             </div>
-            {isLoadingCreatorOrders ? (
+            {isLoading ? (
               <p className="text-text-secondary">
                 Loading orders to process...
               </p>
-            ) : (
+            ) : realUserNFTAssets.length > 0 ? (
               <div className="space-y-4">
-                {creatorOrders.map((order) => renderOrderCard(order, true))}
+                {realUserNFTAssets.map((nft) => (
+                  <OrderCard
+                    key={`creator-${nft.collection.address}-${nft.tokenId}`}
+                    collectionAddress={nft.collection.address}
+                    tokenId={nft.tokenId}
+                    isCreator={true}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12 bg-[rgba(12,12,14,0.78)] rounded-[16px] border border-[rgba(38,39,43,0.75)]">
+                <Package className="h-12 w-12 mx-auto text-text-secondary/30 mb-3" />
+                <p className="text-text-secondary">
+                  No physicalization orders to process yet.
+                </p>
+                <p className="text-text-secondary/70 text-sm mt-1">
+                  Orders will appear here when buyers request physicalization
+                  for your collections.
+                </p>
               </div>
             )}
           </section>
@@ -419,12 +441,12 @@ export function ProfileView({ address }: ProfileView) {
               >
                 <div className="flex items-center justify-between">
                   <p className="text-text-primary">{event.description}</p>
-                  <time className="text-xs uppercase tracking-[0.25em] text-text-secondary/70">
+                  {/* <time className="text-xs uppercase tracking-[0.25em] text-text-secondary/70">
                     {new Date(event.timestamp).toLocaleTimeString([], {
                       hour: "2-digit",
                       minute: "2-digit",
                     })}
-                  </time>
+                  </time> */}
                 </div>
               </div>
             ))}

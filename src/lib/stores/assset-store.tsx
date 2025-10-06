@@ -175,7 +175,7 @@ export const AssetStoreProvider = ({
         assetsHashRef.current = nextHash;
       }
     }
-  }, [processedAssets, setAssets]);
+  }, [processedAssets]);
 
   return <>{children}</>;
 };

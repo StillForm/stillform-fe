@@ -410,18 +410,12 @@ export function useUserAssets(
   const error = purchasedError || detailsError;
 
   // 创建用户拥有的NFT资产列表
-  const userNFTAssets: UserNFTAsset[] = [];
-
-  collectionDetails.forEach((collection) => {
-    // 获取用户在该集合中的实际token IDs
-    // 这里我们需要调用useUserTokenIds，但由于hook规则，我们需要在组件级别处理
-    // 暂时使用占位符，实际实现需要在profile-view组件中处理
-    userNFTAssets.push({
-      collection,
-      tokenId: 1n, // 占位符 - 需要在组件级别替换为真实tokenId
-      assetId: `${collection.address}-1`, // 占位符
-    });
-  });
+  // 注意：这里的tokenId仍然是占位符，需要在NFTCard组件中使用useUserTokenIds获取真实值
+  const userNFTAssets: UserNFTAsset[] = collectionDetails.map((collection) => ({
+    collection,
+    tokenId: 0n, // 占位符 - NFTCard会使用useUserTokenIds获取真实tokenId
+    assetId: collection.address,
+  }));
 
   return {
     userNFTAssets,
